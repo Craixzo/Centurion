@@ -1,53 +1,49 @@
 import { Command } from '../../structures/Command';
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { provider } from '../../database';
-import { robloxClient } from '../../main';
+import { MessageEmbed } from 'discord.js';
 
 class LeaderboardCommand extends Command {
     constructor() {
         super({
             trigger: 'leaderboard',
-            aliases: ['lb'], // Support both /leaderboard and /lb
             description: 'Displays the top 10 users with the most XP.',
             type: 'ChatInput',
             module: 'xp',
+            args: [],
         });
     }
 
     async run(ctx: CommandContext) {
-        await ctx.defer(); // Handle longer processing
-
-        let users;
         try {
-            users = await provider.getTopUsers?.(10);
-        } catch (error) {
-            console.error('Failed to get top users:', error);
-            return ctx.reply({
-                content: '❌ An error occurred while fetching the leaderboard.',
-                ephemeral: true
+            // Fetch top 10 users sorted by XP in descending order
+            const topUsers = await provider.findManyUsers({
+                sort: { xp: -1 }, // Sort by XP descending
+                limit: 10,       // Limit to top 10 users
             });
-        }
 
-        if (!users || users.length === 0) {
-            return ctx.reply({
-                content: '📭 No users with XP found in the database.',
-                ephemeral: true
-            });
-        }
+            // Create an embed message
+            const embed = new MessageEmbed()
+                .setTitle('Top 10 XP Leaderboard')
+                .setColor('#FFD700')
+                .setTimestamp();
 
-        const leaderboardLines = await Promise.all(users.map(async (user: any, index: number) => {
-            let robloxUser;
-            try {
-                robloxUser = await robloxClient.getUser(user.id);
-            } catch {
-                robloxUser = { name: 'Unknown User' };
+            if (topUsers.length === 0) {
+                embed.setDescription('No XP data available.');
+            } else {
+                let description = '';
+                topUsers.forEach((user, index) => {
+                    description += `**${index + 1}.** ${user.username} - **${user.xp} XP**\n`;
+                });
+                embed.setDescription(description);
             }
-            return `**${index + 1}.** ${robloxUser.name} — ${user.xp} XP`;
-        }));
 
-        await ctx.reply({
-            content: `🏆 **Top 10 XP Leaderboard**\n\n${leaderboardLines.join('\n')}`
-        });
+            // Send the embed to the channel
+            await ctx.reply({ embeds: [embed] });
+        } catch (error) {
+            console.error('Error generating leaderboard:', error);
+            await ctx.reply({ content: 'An error occurred while fetching the leaderboard. Please try again later.' });
+        }
     }
 }
 
