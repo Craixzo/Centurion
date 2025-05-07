@@ -15,15 +15,15 @@ class PrismaProvider extends DatabaseProvider {
         let userData = await this.db.user.findUnique({ where: { robloxId } });
         if(!userData) userData = await this.db.user.create({ data: { robloxId } });
         return userData;
-    }
+    },
 
     async findSuspendedUsers(): Promise<DatabaseUser[]> {
         return await this.db.user.findMany({ where: { suspendedUntil: { not: null } } });
-    }
+    },
 
     async findBannedUsers(): Promise<DatabaseUser[]> {
         return await this.db.user.findMany({ where: { isBanned: true } });
-    }
+    },
 
     async updateUser(robloxId: string, data: any) {
         let userData = await this.db.user.findUnique({ where: { robloxId } });
@@ -32,7 +32,13 @@ class PrismaProvider extends DatabaseProvider {
         const newData: DatabaseUser = userData;
         Object.keys(data).forEach((key) => newData[key] = data[key]);
         return await this.db.user.update({ where: { robloxId }, data: userData });
-    }
-}
+    },
+        async findManyUsers(query: { sort?: any; limit?: number }) {
+        return await prisma.user.findMany({
+            orderBy: query.sort || { xp: 'desc' },
+            take: query.limit || 10,
+        });
+    },
+};
 
 export { PrismaProvider };
