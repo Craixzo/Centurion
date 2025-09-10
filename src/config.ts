@@ -17,6 +17,12 @@ export const config: BotConfig = {
         signal: [''],
         admin: [''],
     },
+    
+    boosterRoles: {
+        "737823381218525184": "1252782745848123482", // guildId : boosterRoleId
+        "223456789012345678": "887654321098765432",
+    },
+
     logChannels: {
         actions: '',
         shout: '',
