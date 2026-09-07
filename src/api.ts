@@ -2,9 +2,23 @@ import express from 'express';
 import { config } from './config';
 import { provider } from './database';
 import { logAction } from './handlers/handleLogging';
-import { robloxClient, robloxGroup } from './main';
+import { robloxClient } from './main';
+import { getGroupIdForGuild } from './handlers/groupResolver';
 import ms from 'ms';
 import { findEligibleRole } from './handlers/handleXpRankup';
+
+/**
+ * Which group an API request targets. Callers may pass `groupId` in the body
+ * or query string; otherwise the default group is used. This lets the in-game
+ * XP plugin post to whichever community the place belongs to.
+ */
+const groupFromRequest = async (req: any) => {
+    const requested = req.body?.groupId || req.query?.groupId;
+    const groupId = requested ? Number(requested) : getGroupIdForGuild(null);
+    if(!groupId) throw new Error('No group configured.');
+    return robloxClient.getGroup(groupId);
+}
+
 const app = express();
 require('dotenv').config();
 
@@ -39,12 +53,13 @@ if(config.api) {
     });
 
     app.get('/user', async (req, res) => {
+        const robloxGroup = await groupFromRequest(req);
         const { id } = req.query;
         if(!id) return res.send({ success: false, msg: 'Missing parameters.' });
         try {
             const robloxUser = await robloxClient.getUser(id as string);
 
-            const userData = await provider.findUser(robloxUser.id.toString());
+            const userData = await provider.findUser(robloxUser.id.toString(), robloxGroup.id);
             if(!userData) throw new Error();
 
             return res.send({
@@ -61,6 +76,7 @@ if(config.api) {
     });
     
     app.get('/suspensions', async (req, res) => {
+        const robloxGroup = await groupFromRequest(req);
         try {
             const suspensions = await provider.findSuspendedUsers();
             if (suspensions.length == 0) return res.send({ success: true, msg: 'No currently suspended users.' });
@@ -72,6 +88,7 @@ if(config.api) {
     });
 
     app.get('/join-requests', async (req, res) => {
+        const robloxGroup = await groupFromRequest(req);
         try {
             const joinRequests = await robloxGroup.getJoinRequests({ limit: 100 });
             return res.send({
@@ -84,10 +101,12 @@ if(config.api) {
     });
 
     app.get('/signals', async (req, res) => {
+        const robloxGroup = await groupFromRequest(req);
         return res.send(signals);
     });
 
     app.post('/signals/complete', async (req, res) => {
+        const robloxGroup = await groupFromRequest(req);
         const { id } = req.query;
         if(!id) return res.send({ success: false, msg: 'Missing parameters.' });
         try {
@@ -101,6 +120,7 @@ if(config.api) {
     });
     
     app.post('/promote', async (req, res) => {
+        const robloxGroup = await groupFromRequest(req);
         const { id } = req.body;
         if(!id) return res.send({ success: false, msg: 'Missing parameters.' });
         try {
@@ -119,6 +139,7 @@ if(config.api) {
     });
 
     app.post('/demote', async (req, res) => {
+        const robloxGroup = await groupFromRequest(req);
         const { id } = req.body;
         if(!id) return res.send({ success: false, msg: 'Missing parameters.' });
         try {
@@ -137,6 +158,7 @@ if(config.api) {
     });
 
     app.post('/fire', async (req, res) => {
+        const robloxGroup = await groupFromRequest(req);
         const { id } = req.body;
         if(!id) return res.send({ success: false, msg: 'Missing parameters.' });
         try {
@@ -154,6 +176,7 @@ if(config.api) {
     });
 
     app.post('/setrank', async (req, res) => {
+        const robloxGroup = await groupFromRequest(req);
         const { id, role } = req.body;
         if(!id || !role) return res.send({ success: false, msg: 'Missing parameters.' });
         try {
@@ -171,6 +194,7 @@ if(config.api) {
     });
 
     app.post('/suspend', async (req, res) => {
+        const robloxGroup = await groupFromRequest(req);
         const { id, duration } = req.body;
         if(!id || !duration) return res.send({ success: false, msg: 'Missing parameters.' });
         try {
@@ -181,7 +205,7 @@ if(config.api) {
             const role = groupRoles.find((role) => role.rank === config.suspendedRank);
             if(!role) throw new Error();
 
-            const userData = await provider.findUser(robloxMember.id.toString());
+            const userData = await provider.findUser(robloxMember.id.toString(), robloxGroup.id);
             if(userData.suspendedUntil) throw new Error();
             
             if(robloxMember.role.id !== role.id) {
@@ -195,7 +219,7 @@ if(config.api) {
             endDate.setMilliseconds(endDate.getMilliseconds() + durationInMs);
 
             logAction('Suspend', 'API Action', null, robloxMember, `${robloxMember.role.name} (${robloxMember.role.rank}) → ${role.name} (${role.rank})`, endDate);
-            await provider.updateUser(robloxMember.id.toString(), { suspendedUntil: endDate, unsuspendRank: robloxMember.role.id });
+            await provider.updateUser(robloxMember.id.toString(), robloxGroup.id, { suspendedUntil: endDate, unsuspendRank: robloxMember.role.id });
 
             return res.send({ success: true });
         } catch (err) {
@@ -204,13 +228,14 @@ if(config.api) {
     });
 
     app.post('/unsuspend', async (req, res) => {
+        const robloxGroup = await groupFromRequest(req);
         const { id } = req.body;
         if(!id) return res.send({ success: false, msg: 'Missing parameters.' });
         try {
             const robloxMember = await robloxGroup.getMember(Number(id));
             if(!robloxMember) throw new Error();
 
-            const userData = await provider.findUser(robloxMember.id.toString());
+            const userData = await provider.findUser(robloxMember.id.toString(), robloxGroup.id);
             if(!userData.suspendedUntil) throw new Error();
             
             if(robloxMember.role.id !== userData.unsuspendRank) {
@@ -222,7 +247,7 @@ if(config.api) {
             if(!role) throw new Error();
 
             logAction('Unsuspend', 'API Action', null, robloxMember, `${robloxMember.role.name} (${robloxMember.role.rank}) → ${role.name} (${role.rank})`);
-            await provider.updateUser(robloxMember.id.toString(), { suspendedUntil: null, unsuspendRank: null });
+            await provider.updateUser(robloxMember.id.toString(), robloxGroup.id, { suspendedUntil: null, unsuspendRank: null });
 
             return res.send({ success: true });
         } catch (err) {
@@ -231,17 +256,18 @@ if(config.api) {
     });
 
     app.post('/xp/add', async (req, res) => {
+        const robloxGroup = await groupFromRequest(req);
         const { id, amount } = req.body;
         if(!id || !amount) return res.send({ success: false, msg: 'Missing parameters.' });
         try {
             const robloxMember = await robloxGroup.getMember(Number(id));
             if(!robloxMember) throw new Error();
 
-            const userData = await provider.findUser(robloxMember.id.toString());
+            const userData = await provider.findUser(robloxMember.id.toString(), robloxGroup.id);
             const xp = Number(userData.xp) + Number(amount);
 
             logAction('Add XP', 'API Action', null, robloxMember, null, null, null, `${userData.xp} → ${xp} (+${Number(amount)})`);
-            await provider.updateUser(robloxMember.id.toString(), { xp });
+            await provider.updateUser(robloxMember.id.toString(), robloxGroup.id, { xp });
 
             return res.send({ success: true });
         } catch (err) {
@@ -250,17 +276,18 @@ if(config.api) {
     });
 
     app.post('/xp/remove', async (req, res) => {
+        const robloxGroup = await groupFromRequest(req);
         const { id, amount } = req.body;
         if(!id || !amount) return res.send({ success: false, msg: 'Missing parameters.' });
         try {
             const robloxMember = await robloxGroup.getMember(Number(id));
             if(!robloxMember) throw new Error();
 
-            const userData = await provider.findUser(robloxMember.id.toString());
+            const userData = await provider.findUser(robloxMember.id.toString(), robloxGroup.id);
             const xp = Number(userData.xp) - Number(amount);
 
             logAction('Remove XP', 'API Action', null, robloxMember, null, null, null, `${userData.xp} → ${xp} (+${Number(amount)})`);
-            await provider.updateUser(robloxMember.id.toString(), { xp });
+            await provider.updateUser(robloxMember.id.toString(), robloxGroup.id, { xp });
 
             return res.send({ success: true });
         } catch (err) {
@@ -269,6 +296,7 @@ if(config.api) {
     });
 
     app.post('/xp/rankup', async (req, res) => {
+        const robloxGroup = await groupFromRequest(req);
         const { id } = req.body;
         if(!id) return res.send({ success: false, msg: 'Missing parameters.' });
         try {
@@ -276,7 +304,7 @@ if(config.api) {
             if(!robloxMember) throw new Error();
 
             const groupRoles = await robloxGroup.getRoles();
-            const userData = await provider.findUser(robloxMember.id.toString());
+            const userData = await provider.findUser(robloxMember.id.toString(), robloxGroup.id);
             const role = await findEligibleRole(robloxMember, groupRoles, userData.xp);
             if(!role) return res.send({ success: false, msg: 'No rankup available.' });
 
@@ -290,6 +318,7 @@ if(config.api) {
     });
 
     app.post('/shout', async (req, res) => {
+        const robloxGroup = await groupFromRequest(req);
         let { content } = req.body;
         if(!content) content = '';
         try {
@@ -302,6 +331,7 @@ if(config.api) {
     });
 
     app.post('/join-requests/accept', async (req, res) => {
+        const robloxGroup = await groupFromRequest(req);
         const { id } = req.body;
         if(!id) return res.send({ success: false, msg: 'Missing parameters.' });
         try {
@@ -317,6 +347,7 @@ if(config.api) {
     });
 
     app.post('/join-requests/deny', async (req, res) => {
+        const robloxGroup = await groupFromRequest(req);
         const { id } = req.body;
         if(!id) return res.send({ success: false, msg: 'Missing parameters.' });
         try {
