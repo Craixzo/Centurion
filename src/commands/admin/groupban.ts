@@ -1,7 +1,7 @@
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
 import { discordClient, robloxClient, robloxGroup } from '../../main';
-import { User, PartialUser, GroupMember } from 'bloxy/dist/structures';
+import { User, PartialUser, GroupMember } from '../../roblox/client';
 import { getLinkedRobloxUser } from '../../handlers/accountLinks';
 import { checkActionEligibility } from '../../handlers/verificationChecks';
 import { provider } from '../../database';
