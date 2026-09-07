@@ -3,6 +3,10 @@ import { DatabaseProvider } from '../structures/DatabaseProvider';
 import { DatabaseUser } from '../structures/types';
 require('dotenv').config();
 
+/**
+ * Records are keyed by (robloxId, groupId). The same Roblox user can hold
+ * separate XP, suspension and ban state in every group the bot manages.
+ */
 class PrismaProvider extends DatabaseProvider {
     db: PrismaClient;
 
@@ -11,27 +15,37 @@ class PrismaProvider extends DatabaseProvider {
         this.db = new PrismaClient();
     }
 
-    async findUser(robloxId: string): Promise<DatabaseUser> {
-        let userData = await this.db.user.findUnique({ where: { robloxId } });
-        if(!userData) userData = await this.db.user.create({ data: { robloxId } });
+    private key(robloxId: string, groupId: number | string) {
+        return { robloxId_groupId: { robloxId, groupId: String(groupId) } };
+    }
+
+    async findUser(robloxId: string, groupId: number | string): Promise<DatabaseUser> {
+        let userData = await this.db.user.findUnique({ where: this.key(robloxId, groupId) });
+        if(!userData) userData = await this.db.user.create({ data: { robloxId, groupId: String(groupId) } });
         return userData;
     }
 
-    async findSuspendedUsers(): Promise<DatabaseUser[]> {
-        return await this.db.user.findMany({ where: { suspendedUntil: { not: null } } });
+    async findSuspendedUsers(groupId?: number | string): Promise<DatabaseUser[]> {
+        return await this.db.user.findMany({
+            where: {
+                suspendedUntil: { not: null },
+                ... (groupId !== undefined ? { groupId: String(groupId) } : {}),
+            },
+        });
     }
 
-    async findBannedUsers(): Promise<DatabaseUser[]> {
-        return await this.db.user.findMany({ where: { isBanned: true } });
+    async findBannedUsers(groupId?: number | string): Promise<DatabaseUser[]> {
+        return await this.db.user.findMany({
+            where: {
+                isBanned: true,
+                ... (groupId !== undefined ? { groupId: String(groupId) } : {}),
+            },
+        });
     }
 
-    async updateUser(robloxId: string, data: any) {
-        let userData = await this.db.user.findUnique({ where: { robloxId } });
-        if(!userData) userData = await this.db.user.create({ data: { robloxId } });
-
-        const newData: DatabaseUser = userData;
-        Object.keys(data).forEach((key) => newData[key] = data[key]);
-        return await this.db.user.update({ where: { robloxId }, data: userData });
+    async updateUser(robloxId: string, groupId: number | string, data: any) {
+        await this.findUser(robloxId, groupId);
+        await this.db.user.update({ where: this.key(robloxId, groupId), data });
     }
 }
 
