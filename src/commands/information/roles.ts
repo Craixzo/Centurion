@@ -1,6 +1,7 @@
-import { robloxGroup } from '../../main';
+import {  } from '../../main';
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
+import { resolveGroup } from '../../handlers/groupResolver';
 import { getRoleListEmbed } from '../../handlers/locale';
 
 class RolesCommand extends Command {
@@ -14,6 +15,7 @@ class RolesCommand extends Command {
     }
 
     async run(ctx: CommandContext) {
+        const robloxGroup = await resolveGroup(ctx.guild?.id);
         const roles = await robloxGroup.getRoles();
         return ctx.reply({ embeds: [ getRoleListEmbed(roles) ] });
     }
