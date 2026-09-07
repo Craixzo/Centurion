@@ -1,4 +1,4 @@
-import { User, Group, GroupMember } from 'bloxy/dist/structures';
+import { User, Group, GroupMember } from '../roblox/client';
 import { getLinkedRobloxUser } from './accountLinks';
 import { discordClient } from '../main';
 import { config } from '../config';
