@@ -1,7 +1,7 @@
 import { EmbedBuilder } from 'discord.js';
 import { CommandArgument, DatabaseUser } from '../structures/types';
 import { config } from '../config';
-import { User, PartialUser, GroupMember, GroupJoinRequest, GroupRole } from 'bloxy/dist/structures';
+import { User, PartialUser, GroupMember, GroupJoinRequest, GroupRole } from '../roblox/client';
 import { User as DiscordUser } from 'discord.js';
 import { Command } from '../structures/Command';
 import { robloxClient } from '../main';
