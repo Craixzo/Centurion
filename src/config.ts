@@ -2,7 +2,10 @@ import { ActivityType } from 'discord.js';
 import { BotConfig } from './structures/types'; 
 
 export const config: BotConfig = {
-    groupId: 0,
+    groupId: 5801322,
+    guildGroups: {
+    "YOUR_MAIN_DISCORD_GUILD_ID": 5801322,
+    },
     slashCommands: true,
     legacyCommands: {
         enabled: true,
@@ -45,18 +48,18 @@ export const config: BotConfig = {
         onlyMilestones: false,
     },
     xpSystem: {
-        enabled: false,
+        enabled: true,
         autoRankup: false,
         roles: [],
     },
     antiAbuse: {
-        enabled: false,
+        enabled: true,
         clearDuration: 1 * 60,
         threshold: 10,
         demotionRank: 1,
     },
     activity: {
-        enabled: false,
+        enabled: true,
         type: ActivityType.Watching,
         value: 'for commands.',
     },
