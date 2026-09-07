@@ -1,7 +1,7 @@
 import { discordClient, robloxClient, robloxGroup } from '../../main';
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
-import { PartialUser, User, GroupMember } from 'bloxy/dist/structures';
+import { PartialUser, User, GroupMember } from '../../roblox/client';
 import { getLinkedRobloxUser } from '../../handlers/accountLinks';
 import { config } from '../../config';
 import {
