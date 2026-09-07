@@ -3,7 +3,7 @@ import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
 import { getJoinRequestsEmbed, getInvalidRobloxGroupEmbed } from '../../handlers/locale';
 import { config } from '../../config';
-import { Group } from 'bloxy/dist/structures';
+import { Group } from '../../roblox/client';
 
 class JoinRequestsCommand extends Command {
     constructor() {
