@@ -1,6 +1,7 @@
-import { discordClient, robloxClient, robloxGroup as defaultRobloxGroup } from '../../main';
+import { discordClient, robloxClient } from '../../main';
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
+import { resolveGroup } from '../../handlers/groupResolver';
 import {
     getInvalidRobloxUserEmbed,
     getRobloxUserIsNotMemberEmbed,
@@ -59,11 +60,11 @@ class UnsuspendCommand extends Command {
     }
 
     async run(ctx: CommandContext) {
-        let robloxGroup: Group = defaultRobloxGroup;
-        if(ctx.args['group']) {
-            const secondaryGroup = config.secondaryGroups.find((group) => group.name.toLowerCase() === ctx.args['group'].toLowerCase());
-            if(!secondaryGroup) return ctx.reply({ embeds: [ getInvalidRobloxGroupEmbed() ]});
-            robloxGroup = await robloxClient.getGroup(secondaryGroup.id);
+        let robloxGroup: Group;
+        try {
+            robloxGroup = await resolveGroup(ctx.guild?.id, ctx.args['group']);
+        } catch (err) {
+            return ctx.reply({ embeds: [ getInvalidRobloxGroupEmbed() ]});
         }
 
         let robloxUser: User | PartialUser;
@@ -95,7 +96,7 @@ class UnsuspendCommand extends Command {
             return ctx.reply({ embeds: [ getRobloxUserIsNotMemberEmbed() ]});
         }
 
-        const userData = await provider.findUser(robloxUser.id.toString());
+        const userData = await provider.findUser(robloxUser.id.toString(), robloxGroup.id);
         if(!userData.suspendedUntil) return ctx.reply({ embeds: [ getNotSuspendedEmbed() ] });
 
         const groupRoles = await robloxGroup.getRoles();
@@ -110,7 +111,7 @@ class UnsuspendCommand extends Command {
             if(!actionEligibility) return ctx.reply({ embeds: [ getVerificationChecksFailedEmbed() ] });
         }
 
-        await provider.updateUser(robloxUser.id.toString(), { suspendedUntil: null, unsuspendRank: null });
+        await provider.updateUser(robloxUser.id.toString(), robloxGroup.id, { suspendedUntil: null, unsuspendRank: null });
 
         try {
             await robloxGroup.updateMember(robloxUser.id, role.id);
