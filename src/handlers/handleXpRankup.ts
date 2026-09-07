@@ -1,4 +1,4 @@
-import { GroupMember, GroupRole } from 'bloxy/dist/structures';
+import { GroupMember, GroupRole } from '../roblox/client';
 import { config } from '../config';
 
 const findEligibleRole = async (member: GroupMember, roles: GroupRole[], xp: number): Promise<GroupRole> => {
