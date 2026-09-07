@@ -1,23 +1,22 @@
 import { QbotClient } from './structures/QbotClient';
-import { Client as RobloxClient } from 'bloxy';
+import { RobloxClient } from './roblox/client';
 import { handleInteraction } from './handlers/handleInteraction';
 import { handleLegacyCommand } from './handlers/handleLegacyCommand';
 import { config } from './config'; 
-import { Group } from 'bloxy/dist/structures';
+import { Group } from './roblox/client';
 import { recordShout } from './events/shout';
 import { checkSuspensions } from './events/suspensions';
 import { recordAuditLogs } from './events/audit';
 import { recordMemberCount } from './events/member';
 import { clearActions } from './handlers/abuseDetection';
 import { checkBans } from './events/bans';
-import { checkWallForAds } from './events/wall';
 require('dotenv').config();
 
 // [Ensure Setup]
-if(!process.env.ROBLOX_COOKIE) {
-    console.error('ROBLOX_COOKIE is not set in the .env file.');
-    process.exit(1);
-}
+if(!process.env.ROBLOX_API_KEY) {
+    console.error('ROBLOX_API_KEY is not set in the .env file.');
+      process.exit(1);
+  }
 
 require('./database');
 require('./api');
@@ -25,7 +24,7 @@ require('./api');
 // [Clients]
 const discordClient = new QbotClient();
 discordClient.login(process.env.DISCORD_TOKEN);
-const robloxClient = new RobloxClient({ credentials: { cookie: process.env.ROBLOX_COOKIE } });
+const robloxClient = new RobloxClient();
 let robloxGroup: Group = null;
 (async () => {
     await robloxClient.login().catch(console.error);
@@ -38,7 +37,6 @@ let robloxGroup: Group = null;
     if(config.recordManualActions) recordAuditLogs();
     if(config.memberCount.enabled) recordMemberCount();
     if(config.antiAbuse.enabled) clearActions();
-    if(config.deleteWallURLs) checkWallForAds();
 })();
 
 // [Handlers]
