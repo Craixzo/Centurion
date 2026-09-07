@@ -1,6 +1,7 @@
-import { discordClient, robloxClient, robloxGroup } from '../../main';
+import { discordClient, robloxClient } from '../../main';
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
+import { resolveGroup } from '../../handlers/groupResolver';
 import { PartialUser, User, GroupMember } from '../../roblox/client';
 import { getLinkedRobloxUser } from '../../handlers/accountLinks';
 import { config } from '../../config';
@@ -30,6 +31,7 @@ class InfoCommand extends Command {
     }
 
     async run(ctx: CommandContext) {
+        const robloxGroup = await resolveGroup(ctx.guild?.id);
         let robloxUser: User | PartialUser;
         try {
             if(ctx.args['roblox-user']) {
@@ -56,7 +58,7 @@ class InfoCommand extends Command {
             }
         }
 
-        const userData = await provider.findUser(robloxUser.id.toString());
+        const userData = await provider.findUser(robloxUser.id.toString(), robloxGroup.id);
 
         let robloxMember: GroupMember;
         try {
