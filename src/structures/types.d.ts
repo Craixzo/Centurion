@@ -6,6 +6,15 @@ import {
 
 export interface BotConfig {
     /**
+     * Map of Discord guild ID to the booster role ID granted in that guild.
+     */
+    boosterRoles?: Record<string, string>;
+    /**
+     * Map of Discord guild ID to the Roblox group ID that guild manages.
+     * A command run in that guild targets this group by default.
+     */
+    guildGroups?: Record<string, number>;
+    /**
      * The ID of the Roblox group this bot will be tied to.
      */
     groupId: number;
@@ -242,6 +251,10 @@ export interface BotConfig {
      * Configuration for the bot's status (online/idle/dnd).
      */
     status: 'online' | 'idle' | 'dnd';
+    /**
+     * Should the bot delete URLs in your group wall?
+     */
+    deleteWallURLs: boolean;
 }
 
 export declare type CommandPermission = {
