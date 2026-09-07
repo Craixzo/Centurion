@@ -1,6 +1,7 @@
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
-import { discordClient, robloxClient, robloxGroup } from '../../main';
+import { resolveGroup } from '../../handlers/groupResolver';
+import { discordClient, robloxClient } from '../../main';
 import { User, PartialUser, GroupMember } from '../../roblox/client';
 import { getLinkedRobloxUser } from '../../handlers/accountLinks';
 import { checkActionEligibility } from '../../handlers/verificationChecks';
@@ -48,6 +49,7 @@ class GroupBanCommand extends Command {
     };
 
     async run(ctx: CommandContext) {
+        const robloxGroup = await resolveGroup(ctx.guild?.id);
         let robloxUser: User | PartialUser;
         try {
             robloxUser = await robloxClient.getUser(ctx.args['roblox-user'] as number);
@@ -80,11 +82,11 @@ class GroupBanCommand extends Command {
             if(!actionEligibility) return ctx.reply({ embeds: [ getVerificationChecksFailedEmbed() ] });
         }
 
-        const userData = await provider.findUser(robloxUser.id.toString());
+        const userData = await provider.findUser(robloxUser.id.toString(), robloxGroup.id);
         if(userData.isBanned) return ctx.reply({ embeds: [ getUserBannedEmbed() ] });
         
         try {
-            await provider.updateUser(robloxUser.id.toString(), {
+            await provider.updateUser(robloxUser.id.toString(), robloxGroup.id, {
                 isBanned: true
             });
             await robloxGroup.banMember(robloxUser.id);
