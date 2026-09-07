@@ -8,7 +8,7 @@ import {
 } from '../../handlers/locale';
 import { config } from '../../config';
 import { logAction } from '../../handlers/handleLogging';
-import { Group } from 'bloxy/dist/structures';
+import { Group } from '../../roblox/client';
 
 class ShoutCommand extends Command {
     constructor() {
