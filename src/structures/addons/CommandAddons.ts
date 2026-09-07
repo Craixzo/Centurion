@@ -44,12 +44,12 @@ export class CommandContext  {
 
         this.args = {};
         if(payload instanceof BaseInteraction) {
-            const interaction = payload as CommandInteraction;
+            const interaction = payload as ChatInputCommandInteraction;
             interaction.options.data.forEach(async (arg) => {
                 this.args[arg.name] = interaction.options.get(arg.name).value;
             });
         } else {
-            this.subject.channel.sendTyping();
+            (this.subject.channel as TextChannel).sendTyping();
             this.command.args.forEach((arg, index) => { if(!arg.isLegacyFlag) this.args[arg.trigger] = args.single() });
             const filledOutArgs = Object.keys(Object.fromEntries(Object.entries(this.args).filter(([_, v]) => v !== null)));
             const requiredArgs = this.command.args.filter((arg) => (arg.required === undefined || arg.required === null ? true : arg.required) && !arg.isLegacyFlag);
@@ -117,7 +117,7 @@ export class CommandContext  {
             try {
                 const subject = this.subject as CommandInteraction;
                 if(this.deferred) {
-                    return await subject.editReply(payload);
+                    return await subject.editReply(payload as InteractionEditReplyOptions);
                 } else {
                     return await subject.reply(payload as InteractionReplyOptions);
                 }
@@ -125,14 +125,14 @@ export class CommandContext  {
                 const subject = this.subject as CommandInteraction;
                 try {
                     if(this.deferred) {
-                        return await subject.editReply(payload as InteractionReplyOptions);
+                        return await subject.editReply(payload as InteractionEditReplyOptions);
                     } else {
                         return await subject.reply(payload as InteractionReplyOptions);
                     }
                 } catch (err) {};
             }
         } else {
-            return await this.subject.channel.send(payload as MessageCreateOptions);
+            return await (this.subject.channel as TextChannel).send(payload as MessageCreateOptions);
         }
     }
 
@@ -145,7 +145,7 @@ export class CommandContext  {
                 const interaction = this.subject as CommandInteraction;
                 if(!interaction.deferred && !interaction.replied) await this.subject.deferReply();
             } else {
-                await this.subject.channel.sendTyping();
+                await (this.subject.channel as TextChannel).sendTyping();
             }
             this.deferred = true;
         } catch (err) {};
