@@ -7,6 +7,9 @@ import {
     GuildMember,
     BaseInteraction,
     MessageCreateOptions,
+    ChatInputCommandInteraction,
+    InteractionEditReplyOptions,
+    TextChannel,
 } from 'discord.js';
 import { Command } from '../Command';
 import { Args } from 'lexure';
