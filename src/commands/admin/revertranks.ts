@@ -9,7 +9,7 @@ import { config } from '../../config';
 import { discordClient, robloxClient, robloxGroup } from '../../main';
 import ms from 'ms';
 import { logAction } from '../../handlers/handleLogging';
-import { PartialUser, User } from 'bloxy/dist/structures';
+import { PartialUser, User } from '../../roblox/client';
 import { getLinkedRobloxUser } from '../../handlers/accountLinks';
 
 class RevertRanksCommand extends Command {
