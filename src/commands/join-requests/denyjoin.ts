@@ -9,7 +9,7 @@ import {
     getInvalidRobloxGroupEmbed
 } from '../../handlers/locale';
 import { config } from '../../config';
-import { User, PartialUser, Group } from 'bloxy/dist/structures';
+import { User, PartialUser, Group } from '../../roblox/client';
 import { logAction } from '../../handlers/handleLogging';
 import { getLinkedRobloxUser } from '../../handlers/accountLinks';
 
