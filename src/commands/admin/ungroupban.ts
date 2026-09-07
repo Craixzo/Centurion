@@ -1,7 +1,7 @@
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
 import { discordClient, robloxClient } from '../../main';
-import { User, PartialUser } from 'bloxy/dist/structures';
+import { User, PartialUser } from '../../roblox/client';
 import { getLinkedRobloxUser } from '../../handlers/accountLinks';
 import { provider } from '../../database';
 import { logAction } from '../../handlers/handleLogging';
