@@ -74,6 +74,7 @@ class UnGroupBanCommand extends Command {
             await provider.updateUser(robloxUser.id.toString(), {
                 isBanned: false
             });
+            await robloxGroup.unbanMember(robloxUser.id);
             logAction('Ungroup Ban', ctx.user, ctx.args['reason'], robloxUser);
             return ctx.reply({ embeds: [ getSuccessfulGroupUnbanEmbed(robloxUser) ]});
         } catch(e) {
