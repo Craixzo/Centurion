@@ -1,12 +1,13 @@
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
+import { resolveGroup } from '../../handlers/groupResolver';
 import {
     getSuccessfulRevertRanksEmbed,
     getInvalidDurationEmbed,
     getInvalidRobloxUserEmbed,
 } from '../../handlers/locale';
 import { config } from '../../config';
-import { discordClient, robloxClient, robloxGroup } from '../../main';
+import { discordClient, robloxClient } from '../../main';
 import ms from 'ms';
 import { logAction } from '../../handlers/handleLogging';
 import { PartialUser, User } from '../../roblox/client';
@@ -51,6 +52,7 @@ class RevertRanksCommand extends Command {
     }
 
     async run(ctx: CommandContext) {
+        const robloxGroup = await resolveGroup(ctx.guild?.id);
         let robloxUser: User | PartialUser;
         if(ctx.args['filter']) {
             try {
