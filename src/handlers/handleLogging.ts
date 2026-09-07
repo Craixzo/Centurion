@@ -1,5 +1,5 @@
 import { TextChannel, User as DiscordUser } from 'discord.js';
-import { GroupMember, PartialUser, User as RobloxUser } from 'bloxy/dist/structures';
+import { GroupMember, PartialUser, User as RobloxUser } from '../roblox/client'
 import { discordClient } from '../main';
 import { getLogEmbed } from './locale';
 import { config } from '../config';
