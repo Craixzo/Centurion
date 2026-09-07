@@ -1,6 +1,8 @@
-import { discordClient, robloxClient, robloxGroup as defaultRobloxGroup } from '../../main';
+// genuinely annoying to put all these in for multi-server bullshit
+import { discordClient, robloxClient } from '../../main';
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
+import { resolveGroup } from '../../handlers/groupResolver';
 import {
     getInvalidRobloxUserEmbed,
     getRobloxUserIsNotMemberEmbed,
@@ -67,11 +69,11 @@ class SuspendCommand extends Command {
     }
 
     async run(ctx: CommandContext) {
-        let robloxGroup: Group = defaultRobloxGroup;
-        if(ctx.args['group']) {
-            const secondaryGroup = config.secondaryGroups.find((group) => group.name.toLowerCase() === ctx.args['group'].toLowerCase());
-            if(!secondaryGroup) return ctx.reply({ embeds: [ getInvalidRobloxGroupEmbed() ]});
-            robloxGroup = await robloxClient.getGroup(secondaryGroup.id);
+        let robloxGroup: Group;
+        try {
+            robloxGroup = await resolveGroup(ctx.guild?.id, ctx.args['group']);
+        } catch (err) {
+            return ctx.reply({ embeds: [ getInvalidRobloxGroupEmbed() ]});
         }
 
         let robloxUser: User | PartialUser;
@@ -128,9 +130,9 @@ class SuspendCommand extends Command {
             if(!actionEligibility) return ctx.reply({ embeds: [ getVerificationChecksFailedEmbed() ] });
         }
 
-        const userData = await provider.findUser(robloxUser.id.toString());
+        const userData = await provider.findUser(robloxUser.id.toString(), robloxGroup.id);
         if(userData.suspendedUntil) return ctx.reply({ embeds: [ getAlreadySuspendedEmbed() ] });
-        await provider.updateUser(robloxUser.id.toString(), { suspendedUntil: endDate, unsuspendRank: robloxMember.role.id });
+        await provider.updateUser(robloxUser.id.toString(), robloxGroup.id, { suspendedUntil: endDate, unsuspendRank: robloxMember.role.id });
 
         try {
             if(robloxMember.role.id !== role.id) await robloxGroup.updateMember(robloxUser.id, role.id);
