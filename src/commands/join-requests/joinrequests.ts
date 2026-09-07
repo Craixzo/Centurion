@@ -1,6 +1,7 @@
-import { robloxGroup as defaultRobloxGroup, robloxClient } from '../../main';
+import { robloxClient } from '../../main';
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
+import { resolveGroup } from '../../handlers/groupResolver';
 import { getJoinRequestsEmbed, getInvalidRobloxGroupEmbed } from '../../handlers/locale';
 import { config } from '../../config';
 import { Group } from '../../roblox/client';
@@ -33,11 +34,11 @@ class JoinRequestsCommand extends Command {
     }
 
     async run(ctx: CommandContext) {
-        let robloxGroup: Group = defaultRobloxGroup;
-        if(ctx.args['group']) {
-            const secondaryGroup = config.secondaryGroups.find((group) => group.name.toLowerCase() === ctx.args['group'].toLowerCase());
-            if(!secondaryGroup) return ctx.reply({ embeds: [ getInvalidRobloxGroupEmbed() ]});
-            robloxGroup = await robloxClient.getGroup(secondaryGroup.id);
+        let robloxGroup: Group;
+        try {
+            robloxGroup = await resolveGroup(ctx.guild?.id, ctx.args['group']);
+        } catch (err) {
+            return ctx.reply({ embeds: [ getInvalidRobloxGroupEmbed() ]});
         }
 
         const joinRequests = await robloxGroup.getJoinRequests({});
