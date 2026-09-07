@@ -1,6 +1,7 @@
-import { discordClient, robloxClient, robloxGroup } from '../../main';
+import { discordClient, robloxClient } from '../../main';
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
+import { resolveGroup } from '../../handlers/groupResolver';
 import {
     getInvalidRobloxUserEmbed,
     getRobloxUserIsNotMemberEmbed,
@@ -56,6 +57,7 @@ class AddXPCommand extends Command {
     }
 
     async run(ctx: CommandContext) {
+        const robloxGroup = await resolveGroup(ctx.guild?.id);
         let enoughForRankUp: boolean;
         let robloxUser: User | PartialUser;
         try {
@@ -93,9 +95,9 @@ class AddXPCommand extends Command {
             if(!actionEligibility) return ctx.reply({ embeds: [ getVerificationChecksFailedEmbed() ] });
         }
 
-        const userData = await provider.findUser(robloxUser.id.toString());
+        const userData = await provider.findUser(robloxUser.id.toString(), robloxGroup.id);
         const xp = Number(userData.xp) + Number(ctx.args['increment']);
-        await provider.updateUser(robloxUser.id.toString(), { xp });
+        await provider.updateUser(robloxUser.id.toString(), robloxGroup.id, { xp });
 
         const groupRoles = await robloxGroup.getRoles();
         const role = await findEligibleRole(robloxMember, groupRoles, xp);
