@@ -1,5 +1,6 @@
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
+import { resolveGroup } from '../../handlers/groupResolver';
 import { discordClient, robloxClient } from '../../main';
 import { User, PartialUser } from '../../roblox/client';
 import { getLinkedRobloxUser } from '../../handlers/accountLinks';
@@ -46,6 +47,7 @@ class UnGroupBanCommand extends Command {
     };
 
     async run(ctx: CommandContext) {
+        const robloxGroup = await resolveGroup(ctx.guild?.id);
         let robloxUser: User | PartialUser;
         try {
             robloxUser = await robloxClient.getUser(ctx.args['roblox-user'] as number);
@@ -67,11 +69,11 @@ class UnGroupBanCommand extends Command {
             }
         }
 
-        const userData = await provider.findUser(robloxUser.id.toString());
+        const userData = await provider.findUser(robloxUser.id.toString(), robloxGroup.id);
         if(!userData.isBanned) return ctx.reply({ embeds: [ getUserNotBannedEmbed() ] });
 
         try {
-            await provider.updateUser(robloxUser.id.toString(), {
+            await provider.updateUser(robloxUser.id.toString(), robloxGroup.id, {
                 isBanned: false
             });
             await robloxGroup.unbanMember(robloxUser.id);
