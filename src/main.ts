@@ -10,6 +10,7 @@ import { recordAuditLogs } from './events/audit';
 import { recordMemberCount } from './events/member';
 import { clearActions } from './handlers/abuseDetection';
 import { checkBans } from './events/bans';
+import registerBoosterEvents from './events/boost';
 require('dotenv').config();
 
 // [Ensure Setup]
@@ -40,6 +41,8 @@ let robloxGroup: Group = null;
 })();
 
 // [Handlers]
+if(config.boosterRoles && Object.keys(config.boosterRoles).length > 0) registerBoosterEvents(discordClient);
+
 discordClient.on('interactionCreate', handleInteraction as any);
 discordClient.on('messageCreate', handleLegacyCommand);
 
