@@ -1,6 +1,7 @@
-import { discordClient, robloxClient, robloxGroup } from '../../main';
+import { discordClient, robloxClient } from '../../main';
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
+import { resolveGroup } from '../../handlers/groupResolver';
 import {
     getInvalidRobloxUserEmbed,
     getRobloxUserIsNotMemberEmbed,
@@ -54,6 +55,7 @@ class RemoveXPCommand extends Command {
     }
 
     async run(ctx: CommandContext) {
+        const robloxGroup = await resolveGroup(ctx.guild?.id);
         let robloxUser: User | PartialUser;
         try {
             robloxUser = await robloxClient.getUser(ctx.args['roblox-user'] as number);
@@ -90,9 +92,9 @@ class RemoveXPCommand extends Command {
             if(!actionEligibility) return ctx.reply({ embeds: [ getVerificationChecksFailedEmbed() ] });
         }
 
-        const userData = await provider.findUser(robloxUser.id.toString());
+        const userData = await provider.findUser(robloxUser.id.toString(), robloxGroup.id);
         const xp = Number(userData.xp) - Number(ctx.args['decrement']);
-        await provider.updateUser(robloxUser.id.toString(), { xp });
+        await provider.updateUser(robloxUser.id.toString(), robloxGroup.id, { xp });
 
         try {
             ctx.reply({ embeds: [ await getSuccessfulXPChangeEmbed(robloxUser, xp) ]});
