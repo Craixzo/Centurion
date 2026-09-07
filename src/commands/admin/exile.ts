@@ -11,7 +11,7 @@ import {
     getInvalidRobloxGroupEmbed,
 } from '../../handlers/locale';
 import { config } from '../../config';
-import { User, PartialUser, GroupMember, Group } from 'bloxy/dist/structures';
+import { User, PartialUser, GroupMember, Group } from '../../roblox/client';
 import { checkActionEligibility } from '../../handlers/verificationChecks';
 import { logAction } from '../../handlers/handleLogging';
 import { getLinkedRobloxUser } from '../../handlers/accountLinks';
