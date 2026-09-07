@@ -1,6 +1,7 @@
-import { discordClient, robloxClient, robloxGroup } from '../../main';
+import { discordClient, robloxClient } from '../../main';
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
+import { resolveGroup } from '../../handlers/groupResolver';
 import {
     getInvalidRobloxUserEmbed,
     getRobloxUserIsNotMemberEmbed,
@@ -38,6 +39,7 @@ class XPRankupCommand extends Command {
     }
 
     async run(ctx: CommandContext) {
+        const robloxGroup = await resolveGroup(ctx.guild?.id);
         let robloxUser: User | PartialUser;
         try {
             if(!ctx.args['roblox-user']) {
@@ -74,7 +76,7 @@ class XPRankupCommand extends Command {
         }
 
         const groupRoles = await robloxGroup.getRoles();
-        const userData = await provider.findUser(robloxUser.id.toString());
+        const userData = await provider.findUser(robloxUser.id.toString(), robloxGroup.id);
         const role = await findEligibleRole(robloxMember, groupRoles, userData.xp);
         if(!role) return ctx.reply({ embeds: [ getNoRankupAvailableEmbed() ] });
 
