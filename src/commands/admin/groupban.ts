@@ -87,7 +87,7 @@ class GroupBanCommand extends Command {
             await provider.updateUser(robloxUser.id.toString(), {
                 isBanned: true
             });
-            if(robloxMember) await robloxGroup.kickMember(robloxUser.id);
+            await robloxGroup.banMember(robloxUser.id);
             logAction('Group Ban', ctx.user, ctx.args['reason'], robloxUser);
             return ctx.reply({ embeds: [ getSuccessfulGroupBanEmbed(robloxUser) ]});
         } catch(e) {
