@@ -31,7 +31,7 @@ const argumentTypeMappings: Record<string, ApplicationCommandOptionType> = {
     SecondaryGroup: ApplicationCommandOptionType.String,
 };
 
-const mapArgument = (arg: CommandArgument): ApplicationCommandOptionData => ({
+const mapArgument = (arg: CommandArgument): any => ({
     name: arg.trigger,
     description: arg.description || 'No description provided.',
     type: argumentTypeMappings[arg.type],
