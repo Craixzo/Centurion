@@ -9,7 +9,7 @@ export const config: BotConfig = {
     slashCommands: true,
     legacyCommands: {
         enabled: true,
-        prefixes: ['q!'],
+        prefixes: ['Y!'],
     },
     permissions: {
         all: [''],
