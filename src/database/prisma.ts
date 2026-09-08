@@ -98,22 +98,22 @@ class PrismaProvider extends DatabaseProvider {
         return ahead + 1;
     }
 
-    // ------------------------------------------------------------ sessions
+    // ------------------------------------------------------------ events
 
-    async createSession(data: any) {
-        return this.db.session.create({ data });
+    async createEvent(data: any) {
+        return this.db.event.create({ data });
     }
 
-    async findSessionByMessage(messageId: string) {
-        return this.db.session.findUnique({ where: { messageId } });
+    async findEventByMessage(messageId: string) {
+        return this.db.event.findUnique({ where: { messageId } });
     }
 
-    async findSessionById(id: string) {
-        return this.db.session.findUnique({ where: { id } });
+    async findEventById(id: string) {
+        return this.db.event.findUnique({ where: { id } });
     }
 
-    async findRecentSessions(guildId: string, limit: number) {
-        return this.db.session.findMany({
+    async findRecentEvents(guildId: string, limit: number) {
+        return this.db.event.findMany({
             where: { guildId },
             orderBy: { createdAt: 'desc' },
             take: limit,
@@ -121,26 +121,74 @@ class PrismaProvider extends DatabaseProvider {
     }
 
     /** Upsert, so clicking the other button just flips the answer. */
-    async setRsvp(sessionId: string, discordId: string, attending: boolean) {
-        await this.db.sessionRsvp.upsert({
-            where: { sessionId_discordId: { sessionId, discordId } },
+    async setRsvp(eventId: string, discordId: string, attending: boolean) {
+        await this.db.eventRsvp.upsert({
+            where: { eventId_discordId: { eventId, discordId } },
             update: { attending },
-            create: { sessionId, discordId, attending },
+            create: { eventId, discordId, attending },
         });
     }
 
-    async getRsvps(sessionId: string, attending?: boolean) {
-        return this.db.sessionRsvp.findMany({
-            where: { sessionId, ... (attending !== undefined ? { attending } : {}) },
+    async getRsvps(eventId: string, attending?: boolean) {
+        return this.db.eventRsvp.findMany({
+            where: { eventId, ... (attending !== undefined ? { attending } : {}) },
         });
     }
 
-    async removeRsvp(sessionId: string, discordId: string) {
-        await this.db.sessionRsvp.deleteMany({ where: { sessionId, discordId } });
+    async removeRsvp(eventId: string, discordId: string) {
+        await this.db.eventRsvp.deleteMany({ where: { eventId, discordId } });
     }
 
-    async closeSession(id: string) {
-        await this.db.session.update({ where: { id }, data: { closed: true } });
+    async countEventsByHost(guildId: string, hostId: string, since: Date): Promise<number> {
+        return this.db.event.count({ where: { guildId, hostId, createdAt: { gte: since } } });
+    }
+
+    /** One pass for the whole roster, rather than a query per officer. */
+    async countEventsByAllHosts(guildId: string, since: Date): Promise<Record<string, number>> {
+        const events = await this.db.event.findMany({
+            where: { guildId, createdAt: { gte: since } },
+            select: { hostId: true },
+        });
+        const counts: Record<string, number> = {};
+        for(const event of events) counts[event.hostId] = (counts[event.hostId] || 0) + 1;
+        return counts;
+    }
+
+    // ---------------------------------------------------------------- loa
+
+    async createLoa(data: any) {
+        return this.db.loa.create({ data });
+    }
+
+    /** A live LOA for this person right now, or null. */
+    async findActiveLoa(guildId: string, discordId: string) {
+        const now = new Date();
+        return this.db.loa.findFirst({
+            where: { guildId, discordId, endedAt: null, startsAt: { lte: now }, endsAt: { gt: now } },
+        });
+    }
+
+    async findActiveLoas(guildId: string) {
+        const now = new Date();
+        return this.db.loa.findMany({
+            where: { guildId, endedAt: null, startsAt: { lte: now }, endsAt: { gt: now } },
+            orderBy: { endsAt: 'asc' },
+        });
+    }
+
+    /** Any LOA touching the given window — used for quota weeks. */
+    async findLoasOverlapping(guildId: string, from: Date, to: Date) {
+        return this.db.loa.findMany({
+            where: { guildId, startsAt: { lt: to }, endsAt: { gt: from } },
+        });
+    }
+
+    async endLoa(id: string) {
+        await this.db.loa.update({ where: { id }, data: { endedAt: new Date() } });
+    }
+
+    async closeEvent(id: string) {
+        await this.db.event.update({ where: { id }, data: { closed: true } });
     }
 }
 
