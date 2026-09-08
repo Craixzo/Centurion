@@ -6,6 +6,30 @@ import {
 
 export interface BotConfig {
     /**
+     * IANA timezone used to interpret event times like "8pm".
+     * e.g. 'America/New_York'. Defaults to UTC.
+     */
+    timezone?: string;
+    /**
+     * Kinds of event officers can run. Shown as a dropdown on /event.
+     */
+    eventTypes?: { name: string; value: string }[];
+    /**
+     * Channels events may be announced in. Shown as a dropdown on /event.
+     * Leave empty to allow the channel the command was run in.
+     */
+    eventChannels?: { name: string; id: string }[];
+    /**
+     * DM the host before their event starts.
+     */
+    eventReminders?: {
+        enabled: boolean;
+        /**
+         * Minutes before the start time for the first DM. Defaults to 5.
+         */
+        minutesBefore?: number;
+    };
+    /**
      * Where Discord-to-Roblox account links come from.
      */
     accountLinks?: {
