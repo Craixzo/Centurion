@@ -6,6 +6,45 @@ import {
 
 export interface BotConfig {
     /**
+     * Where Discord-to-Roblox account links come from.
+     */
+    accountLinks?: {
+        /**
+         * 'rowifi' (5 req/sec, recommended) or 'bloxlink' (60/min for the
+         * whole bot, shared with autocomplete).
+         */
+        provider: 'rowifi' | 'bloxlink';
+        /**
+         * Guild whose links are read. Links are per-guild in both services.
+         * Falls back to the guild a command was run in.
+         */
+        guildId?: string;
+        /**
+         * Block promotions and XP gains for users on the RoWifi denylist.
+         * Requires provider 'rowifi' and ROWIFI_TOKEN.
+         */
+        useDenylist?: boolean;
+    };
+    /**
+     * Officers are expected to host a number of events each week. Hosting is
+     * counted by creating an event with /event.
+     */
+    quota?: {
+        enabled: boolean;
+        /**
+         * Discord role IDs the quota applies to.
+         */
+        roleIds: string[];
+        /**
+         * Events each of those members must host per week.
+         */
+        perWeek: number;
+        /**
+         * Day the quota week resets. 0 = Sunday, 1 = Monday, etc.
+         */
+        weekStartsOn?: number;
+    };
+    /**
      * Map of Discord guild ID to the booster role ID granted in that guild.
      */
     boosterRoles?: Record<string, string>;
