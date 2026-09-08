@@ -930,3 +930,22 @@ export const getLoaListEmbed = async (loas: any[]): Promise<EmbedBuilder> => {
         .setColor(mainColor)
         .setDescription(body.length > 4000 ? body.slice(0, 3990) + '\n\n…' : body);
 }
+
+export const getEventBadTimeEmbed = (): EmbedBuilder => {
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Invalid Time', iconURL: xmarkIconUrl })
+        .setColor(redColor)
+        .setDescription('Could not read that start time.')
+        .addFields({
+            name: 'Accepted formats',
+            value: '`8pm` \u2014 today, or tomorrow if already past\n`20:00`\n`2026-09-12 20:00`\n`in 2h`\n`<t:1735689600:F>`',
+            inline: false,
+        });
+}
+
+export const getEventBadChannelEmbed = (): EmbedBuilder => {
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Invalid Channel', iconURL: xmarkIconUrl })
+        .setColor(redColor)
+        .setDescription('Events cannot be posted in that channel. Pick one from the dropdown.');
+}
