@@ -2,7 +2,7 @@ import { ActivityType } from 'discord.js';
 import { BotConfig } from './structures/types'; 
 
 export const config: BotConfig = {
-    groupId: 0,
+    groupId: 5801322,
     slashCommands: true,
     legacyCommands: {
         enabled: true,
@@ -17,6 +17,9 @@ export const config: BotConfig = {
         signal: [''],
         admin: ['1440292084547321877'],
     },
+
+    notificationTitle: 'NOTIFICATION FROM YELLONIA',
+    notificationIconUrl: '',
     
     boosterRoles: {
         "737823381218525184": "1252782745848123482", // guildId : boosterRoleId
