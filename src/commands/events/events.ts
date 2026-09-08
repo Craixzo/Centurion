@@ -2,15 +2,15 @@ import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
 import { config } from '../../config';
 import { provider } from '../../database';
-import { getSessionListEmbed, getUnexpectedErrorEmbed } from '../../handlers/locale';
+import { getEventListEmbed, getUnexpectedErrorEmbed } from '../../handlers/locale';
 
-class SessionsCommand extends Command {
+class EventsCommand extends Command {
     constructor() {
         super({
-            trigger: 'sessions',
-            description: 'Lists recent sessions and their IDs.',
+            trigger: 'events',
+            description: 'Lists recent events and their IDs.',
             type: 'ChatInput',
-            module: 'sessions',
+            module: 'events',
             permissions: [
                 {
                     type: 'role',
@@ -24,13 +24,13 @@ class SessionsCommand extends Command {
     async run(ctx: CommandContext) {
         if(!ctx.guild) return ctx.reply({ content: 'This command only works inside a server.' });
         try {
-            const sessions = await provider.findRecentSessions(ctx.guild.id, 10);
-            return ctx.reply({ embeds: [ await getSessionListEmbed(sessions) ] });
+            const events = await provider.findRecentEvents(ctx.guild.id, 10);
+            return ctx.reply({ embeds: [ await getEventListEmbed(events) ] });
         } catch (err) {
-            console.error('[sessions]', err);
+            console.error('[events]', err);
             return ctx.reply({ embeds: [ getUnexpectedErrorEmbed() ] });
         }
     }
 }
 
-export default SessionsCommand;
+export default EventsCommand;
