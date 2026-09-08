@@ -6,6 +6,14 @@ import {
 
 export interface BotConfig {
     /**
+     * Title on every DM the bot sends.
+     */
+    notificationTitle?: string;
+    /**
+     * Optional thumbnail on those DMs, e.g. your group logo.
+     */
+    notificationIconUrl?: string;
+    /**
      * IANA timezone used to interpret event times like "8pm".
      * e.g. 'America/New_York'. Defaults to UTC.
      */
@@ -48,6 +56,21 @@ export interface BotConfig {
          * Requires provider 'rowifi' and ROWIFI_TOKEN.
          */
         useDenylist?: boolean;
+    };
+    /**
+     * Leave of absence limits.
+     */
+    loa?: {
+        /**
+         * Shortest leave that can be filed, in days. Anything briefer should
+         * just be handled by not showing up. Defaults to 2.
+         */
+        minDays?: number;
+        /**
+         * Longest leave that can be filed, in days. Set to 0 for no limit.
+         * Defaults to 30.
+         */
+        maxDays?: number;
     };
     /**
      * Officers are expected to host a number of events each week. Hosting is
