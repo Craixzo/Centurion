@@ -47,9 +47,10 @@ export const config: BotConfig = {
         onlyMilestones: false,
     },
     xpSystem: {
-        enabled: true,
-        autoRankup: false,
-        roles: [],
+        enabled: true,          // must be true or none of this runs
+        messageXp: 1,
+        messageCooldown: 60,    // seconds
+        messageXpIgnoredChannels: [],
     },
     antiAbuse: {
         enabled: true,
