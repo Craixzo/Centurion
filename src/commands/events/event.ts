@@ -4,21 +4,21 @@ import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
 import { config } from '../../config';
 import { provider } from '../../database';
-import { buildSessionEmbed, seedSessionReactions } from '../../handlers/sessions';
-import { getUnexpectedErrorEmbed, getSessionCreatedEmbed } from '../../handlers/locale';
+import { buildEventEmbed, seedEventReactions } from '../../handlers/events';
+import { getUnexpectedErrorEmbed, getEventCreatedEmbed } from '../../handlers/locale';
 import { logAction } from '../../handlers/handleLogging';
 
-class SessionCommand extends Command {
+class EventCommand extends Command {
     constructor() {
         super({
-            trigger: 'session',
-            description: 'Announces a session that members can RSVP to.',
+            trigger: 'event',
+            description: 'Announces a event that members can RSVP to.',
             type: 'ChatInput',
-            module: 'sessions',
+            module: 'events',
             args: [
                 {
                     trigger: 'title',
-                    description: 'What is the session called?',
+                    description: 'What is the event called?',
                     required: true,
                     type: 'String',
                 },
@@ -74,10 +74,10 @@ class SessionCommand extends Command {
             // Post first so we have a message ID, then attach the buttons.
             const draft = { title, details, startsAt, closed: false };
             const message = await channel.send({
-                embeds: [ await buildSessionEmbed(draft, []) ],
+                embeds: [ await buildEventEmbed(draft, []) ],
             });
 
-            const session = await provider.createSession({
+            const event = await provider.createEvent({
                 guildId: ctx.guild.id,
                 channelId: channel.id,
                 messageId: message.id,
@@ -87,17 +87,17 @@ class SessionCommand extends Command {
                 hostId: ctx.user.id,
             });
 
-            await message.edit({ embeds: [ await buildSessionEmbed(session, []) ] });
-            await seedSessionReactions(message);
+            await message.edit({ embeds: [ await buildEventEmbed(event, []) ] });
+            await seedEventReactions(message);
 
-            logAction('Session Created' as any, ctx.user, `${title} (${session.id})`);
+            logAction('Event Created' as any, ctx.user, `${title} (${event.id})`);
 
-            return ctx.reply({ embeds: [ await getSessionCreatedEmbed(session, message.url) ] });
+            return ctx.reply({ embeds: [ await getEventCreatedEmbed(event, message.url) ] });
         } catch (err) {
-            console.error('[session]', err);
+            console.error('[event]', err);
             return ctx.reply({ embeds: [ getUnexpectedErrorEmbed() ] });
         }
     }
 }
 
-export default SessionCommand;
+export default EventCommand;
