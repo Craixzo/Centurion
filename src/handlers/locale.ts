@@ -679,3 +679,92 @@ export const getDmRoleResultEmbed = async (result: {
         .setColor(result.failed.length === 0 ? greenColor : mainColor)
         .setDescription(`Messaged <@&${result.roleId}>.\n\n${lines.join('\n')}`);
 }
+
+export const getSessionCreatedEmbed = async (session: any, url: string): Promise<EmbedBuilder> => {
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Session Created', iconURL: checkIconUrl })
+        .setColor(greenColor)
+        .setDescription(`**${session.title}** has been posted.\n\n[Jump to announcement](${url})`)
+        .addFields({ name: 'Session ID', value: `\`${session.id}\``, inline: false })
+        .setFooter({ text: 'Use /sessiondm with this ID to message attendees.' });
+}
+
+export const getSessionNotFoundEmbed = (): EmbedBuilder => {
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Session Not Found', iconURL: xmarkIconUrl })
+        .setColor(redColor)
+        .setDescription('No session with that ID. Use `/sessions` to list recent ones.');
+}
+
+export const getSessionDmResultEmbed = async (session: any, result: { sent: number; failed: string[]; capped: boolean; total: number }): Promise<EmbedBuilder> => {
+    if(result.total === 0) {
+        return new EmbedBuilder()
+            .setAuthor({ name: 'Session DM', iconURL: infoIconUrl })
+            .setColor(redColor)
+            .setDescription(`Nobody has marked themselves attending **${session.title}** yet.`);
+    }
+
+    const lines = [ `Sent: **${result.sent}**`, `Failed: **${result.failed.length}**` ];
+    if(result.failed.length > 0) {
+        const shown = result.failed.slice(0, 15).join(', ');
+        lines.push(`\nCould not reach: ${shown}${result.failed.length > 15 ? ` and ${result.failed.length - 15} more` : ''}`);
+    }
+
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Session DM', iconURL: infoIconUrl })
+        .setColor(result.failed.length === 0 ? greenColor : mainColor)
+        .setDescription(`Messaged attendees of **${session.title}**.\n\n${lines.join('\n')}`);
+}
+
+export const getSessionListEmbed = async (sessions: any[]): Promise<EmbedBuilder> => {
+    const body = sessions.map((s) => `\`${s.id}\`\n**${s.title}**${s.closed ? ' (closed)' : ''}`).join('\n\n');
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Recent Sessions', iconURL: infoIconUrl })
+        .setColor(mainColor)
+        .setDescription(sessions.length ? body : 'No sessions have been created in this server yet.');
+}
+
+const formatIdList = (ids: string[], empty: string): string => {
+    if(ids.length === 0) return empty;
+    const out: string[] = [];
+    let length = 0;
+    for(const id of ids) {
+        const mention = `<@${id}>`;
+        if(length + mention.length + 2 > 950) {
+            out.push(`and **${ids.length - out.length}** more`);
+            break;
+        }
+        out.push(mention);
+        length += mention.length + 2;
+    }
+    return out.join(', ');
+}
+
+export const getSessionRosterEmbed = async (session: any, roster: {
+    attending: string[];
+    declined: string[];
+    noResponse: string[];
+    roleId?: string;
+}): Promise<EmbedBuilder> => {
+    const fields: any[] = [
+        { name: `Attending \u2014 ${roster.attending.length}`, value: formatIdList(roster.attending, '*Nobody yet.*'), inline: false },
+        { name: `Can't make it \u2014 ${roster.declined.length}`, value: formatIdList(roster.declined, '*Nobody.*'), inline: false },
+    ];
+
+    if(roster.roleId) {
+        fields.push({
+            name: `No response \u2014 ${roster.noResponse.length}`,
+            value: formatIdList(roster.noResponse, '*Everyone has replied.*'),
+            inline: false,
+        });
+    }
+
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Session Roster', iconURL: infoIconUrl })
+        .setTitle(session.title)
+        .setColor(mainColor)
+        .addFields(fields)
+        .setFooter({ text: roster.roleId
+            ? 'No response is measured against the role you specified.'
+            : 'Pass a role to also see who has not replied.' });
+}
