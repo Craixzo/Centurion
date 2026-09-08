@@ -1,6 +1,7 @@
 import { discordClient, robloxClient } from '../../main';
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
+import { checkDenylist } from '../../handlers/denylist';
 import { resolveGroup } from '../../handlers/groupResolver';
 import {
     getInvalidRobloxUserEmbed,
@@ -12,6 +13,7 @@ import {
     getAlreadyRankedEmbed,
     getUserSuspendedEmbed,
     getInvalidRobloxGroupEmbed,
+    getDenylistedEmbed,
 } from '../../handlers/locale';
 import { config } from '../../config';
 import { User, PartialUser, GroupMember, Group } from '../../roblox/client';
@@ -112,6 +114,9 @@ class SetRankCommand extends Command {
             const actionEligibility = await checkActionEligibility(robloxGroup, ctx.user.id, ctx.member.roles.cache.map((r) => r.id), ctx.guild.id, robloxMember, role.rank);
             if(!actionEligibility) return ctx.reply({ embeds: [ getVerificationChecksFailedEmbed() ] });
         }
+
+        const denied = ctx.guild ? await checkDenylist(ctx.guild.id, robloxUser.id) : null;
+        if(denied) return ctx.reply({ embeds: [ getDenylistedEmbed(denied) ] });
 
         const userData = await provider.findUser(robloxUser.id.toString(), robloxGroup.id);
         if(userData.suspendedUntil) return ctx.reply({ embeds: [ getUserSuspendedEmbed() ] });
