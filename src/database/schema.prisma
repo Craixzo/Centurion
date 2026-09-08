@@ -39,15 +39,22 @@ model Event {
   messageId String   @unique
   title     String
   details   String?
-  startsAt  String?
+  type      String?
+  gameLink  String?
+  startsAt  DateTime?
   hostId    String
   closed    Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  /// Reminder DMs to the host, so each fires once.
+  remind5Sent     Boolean @default(false)
+  remindStartSent Boolean @default(false)
 
   rsvps EventRsvp[]
 
   @@index([guildId])
   @@index([hostId])
+  @@index([startsAt])
 }
 
 model EventRsvp {
