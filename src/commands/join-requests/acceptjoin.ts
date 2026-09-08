@@ -1,6 +1,7 @@
 import { discordClient, robloxClient } from '../../main';
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
+import { checkDenylist } from '../../handlers/denylist';
 import { resolveGroup } from '../../handlers/groupResolver';
 import {
     getInvalidRobloxUserEmbed,
@@ -8,6 +9,7 @@ import {
     getSuccessfulAcceptJoinRequestEmbed,
     getNoJoinRequestEmbed,
     getInvalidRobloxGroupEmbed,
+    getDenylistedEmbed,
 } from '../../handlers/locale';
 import { config } from '../../config';
 import { User, PartialUser, Group } from '../../roblox/client';
@@ -82,6 +84,9 @@ class AcceptJoinCommand extends Command {
                 }
             }
         }
+
+        const denied = ctx.guild ? await checkDenylist(ctx.guild.id, robloxUser.id) : null;
+        if(denied) return ctx.reply({ embeds: [ getDenylistedEmbed(denied) ] });
 
         const joinRequest = await robloxUser.getJoinRequestInGroup(robloxGroup.id);
         if(!joinRequest) return ctx.reply({ embeds: [ getNoJoinRequestEmbed() ] });
