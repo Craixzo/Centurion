@@ -10,8 +10,8 @@ export const config: BotConfig = {
     },
     permissions: {
         all: ['1440292084547321877'],
-        ranking: [''],
-        users: [''],
+        ranking: ['1056133660954337280'],
+        users: ['1056133660954337280'],
         shout: [''],
         join: [''],
         signal: [''],
@@ -19,7 +19,7 @@ export const config: BotConfig = {
     },
 
     notificationTitle: 'NOTIFICATION FROM YELLONIA',
-    notificationIconUrl: '',
+    notificationIconUrl: 'https://cdn.discordapp.com/attachments/741315255975804998/1547016815480275074/71wmb9j.png?ex=6aa1e32e&is=6aa091ae&hm=cb13cd547ddb088648c5b636e59c39d61500e43d632a049de0e2533441909c49&',
     
     boosterRoles: {
         "737823381218525184": "1252782745848123482", // guildId : boosterRoleId
@@ -29,7 +29,7 @@ export const config: BotConfig = {
     accountLinks: {
         provider: 'rowifi',
         guildId: '',
-        useDenylist: true,
+        useDenylist: false,
     },
 
     quota: {
@@ -61,7 +61,7 @@ export const config: BotConfig = {
         onlyMilestones: false,
     },
     xpSystem: {
-        enabled: true,
+        enabled: false,
         autoRankup: true,
         resetXpOnFire: false,
         messageXp: 1,
@@ -76,9 +76,9 @@ export const config: BotConfig = {
         demotionRank: 1,
     },
     activity: {
-        enabled: false,
+        enabled: true,
         type: ActivityType.Watching,
-        value: 'for commands.',
+        value: 'Watching over Yellonia.',
     },
     status: 'online',
     deleteWallURLs: false,
