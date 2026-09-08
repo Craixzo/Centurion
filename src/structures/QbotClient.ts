@@ -23,7 +23,7 @@ class QbotClient extends Client {
             ],
             // Without these, reactions on messages the bot has not cached
             // (i.e. anything posted before the last restart) never fire an
-            // event. Session announcements outlive restarts, so they matter.
+            // event. Event announcements outlive restarts, so they matter.
             partials: [
                 Partials.Message,
                 Partials.Channel,
