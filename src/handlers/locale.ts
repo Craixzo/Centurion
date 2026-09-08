@@ -630,3 +630,52 @@ export const getInvalidRobloxGroupEmbed = (): EmbedBuilder => {
 
     return embed;
 }
+
+export const getXpLeaderboardEmbed = async (rows: { position: number; name: string; xp: number }[]): Promise<EmbedBuilder> => {
+    const medals = [ ':first_place:', ':second_place:', ':third_place:' ];
+    const body = rows.map((row) => {
+        const marker = medals[row.position - 1] || `\`#${row.position}\``;
+        return `${marker} **${row.name}** \u2014 ${row.xp.toLocaleString()} XP`;
+    }).join('\n');
+
+    return new EmbedBuilder()
+        .setAuthor({ name: 'XP Leaderboard', iconURL: infoIconUrl })
+        .setColor(mainColor)
+        .setDescription(rows.length ? body : 'Nobody has earned any XP yet.');
+}
+
+export const getDmRoleResultEmbed = async (result: {
+    roleId: string;
+    total: number;
+    sent: number;
+    failed: string[];
+    dryRun: boolean;
+    capped: boolean;
+}): Promise<EmbedBuilder> => {
+    const embed = new EmbedBuilder().setAuthor({ name: 'Mass DM', iconURL: infoIconUrl });
+
+    if(result.total === 0) {
+        return embed.setColor(redColor).setDescription(`Nobody in <@&${result.roleId}> can be messaged.`);
+    }
+
+    if(result.dryRun) {
+        return embed
+            .setColor(mainColor)
+            .setDescription(`**${result.total}** members hold <@&${result.roleId}>.`)
+            .setFooter({ text: result.capped ? 'Capped at 500 - only the first 500 would be messaged.' : 'Dry run: nothing was sent.' });
+    }
+
+    const lines = [
+        `Sent: **${result.sent}**`,
+        `Failed: **${result.failed.length}**`,
+    ];
+    if(result.capped) lines.push(`\nCapped at 500 of ${result.total} recipients.`);
+    if(result.failed.length > 0) {
+        const shown = result.failed.slice(0, 15).join(', ');
+        lines.push(`\nCould not reach: ${shown}${result.failed.length > 15 ? ` and ${result.failed.length - 15} more` : ''}`);
+    }
+
+    return embed
+        .setColor(result.failed.length === 0 ? greenColor : mainColor)
+        .setDescription(`Messaged <@&${result.roleId}>.\n\n${lines.join('\n')}`);
+}
