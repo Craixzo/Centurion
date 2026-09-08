@@ -43,12 +43,14 @@ class QuotaCommand extends Command {
             const member = await ctx.guild.members.fetch(targetId) as GuildMember;
             const weekStart = getWeekStart();
             const hosted = await provider.countEventsByHost(ctx.guild.id, targetId, weekStart);
+            const loa = await provider.findActiveLoa(ctx.guild.id, targetId);
 
             return ctx.reply({ embeds: [ await getQuotaEmbed({
                 userId: targetId,
                 hosted,
                 required: config.quota.perWeek,
                 exempt: !isUnderQuota(member.roles.cache.map((r) => r.id)),
+                onLeave: Boolean(loa),
                 weekStart,
                 weekEnd: getWeekEnd(),
             }) ] });
