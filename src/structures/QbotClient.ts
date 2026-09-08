@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, ActivityType, REST, Routes } from 'discord.js';
+import { Client, GatewayIntentBits, ActivityType, Partials, REST, Routes } from 'discord.js';
 import { BotConfig, CommandExport } from './types';
 import { Command } from './Command';
 import { config } from '../config';
@@ -10,7 +10,7 @@ import 'dotenv/config';
 
 class QbotClient extends Client {
     config: BotConfig;
-    commands: Command[];
+    commands: (new () => Command)[];
 
     constructor() {
         super({
@@ -20,6 +20,15 @@ class QbotClient extends Client {
                 GatewayIntentBits.GuildMembers,
                 GatewayIntentBits.GuildMessageReactions,
                 GatewayIntentBits.MessageContent,
+            ],
+            // Without these, reactions on messages the bot has not cached
+            // (i.e. anything posted before the last restart) never fire an
+            // event. Session announcements outlive restarts, so they matter.
+            partials: [
+                Partials.Message,
+                Partials.Channel,
+                Partials.Reaction,
+                Partials.User,
             ],
         });
 
@@ -59,7 +68,7 @@ class QbotClient extends Client {
      */
     async loadCommands() {
         const modules = readdirSync('./src/commands');
-        const commands: Command[] = [];
+        const commands: (new () => Command)[] = [];
 
         for (const module of modules) {
             const commandFiles = readdirSync(`./src/commands/${module}`).filter(f => f.endsWith('.ts'));
