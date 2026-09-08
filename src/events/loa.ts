@@ -1,62 +1,101 @@
-# LOA: 2 days is now the minimum
+import ms from 'ms';
+import { CommandContext } from '../../structures/addons/CommandAddons';
+import { Command } from '../../structures/Command';
+import { config } from '../../config';
+import { provider } from '../../database';
+import { logAction } from '../../handlers/handleLogging';
+import {
+    getLoaFiledEmbed,
+    getLoaTooShortEmbed,
+    getLoaTooLongEmbed,
+    getLoaInvalidDurationEmbed,
+    getLoaAlreadyActiveEmbed,
+    getUnexpectedErrorEmbed,
+} from '../../handlers/locale';
 
-Flipped, and both bounds are configurable so you're not stuck with either.
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-```ts
-loa: {
-    minDays: 2,
-    maxDays: 30,   // 0 for no limit
-},
-```
+const minMs = () => (config.loa?.minDays ?? 2) * DAY_MS;
+const maxMs = () => {
+    const days = config.loa?.maxDays ?? 30;
+    return days > 0 ? days * DAY_MS : Infinity;
+}
 
-Add that block to `config.ts` — top level, next to `quota`.
+class LoaCommand extends Command {
+    constructor() {
+        super({
+            trigger: 'loa',
+            description: 'Files a leave of absence. Minimum 2 days.',
+            type: 'ChatInput',
+            module: 'events',
+            args: [
+                {
+                    trigger: 'duration',
+                    description: 'How long? Minimum 2 days, e.g. 2d, 5d, 2w.',
+                    required: true,
+                    type: 'String',
+                },
+                {
+                    trigger: 'reason',
+                    description: 'Why are you going on leave?',
+                    required: true,
+                    type: 'String',
+                },
+            ],
+            permissions: [
+                {
+                    type: 'role',
+                    ids: config.permissions.users,
+                    value: true,
+                },
+            ],
+        });
+    }
 
-## Why a maximum too
+    async run(ctx: CommandContext) {
+        if(!ctx.guild) return ctx.reply({ content: 'This command only works inside a server.' });
 
-A minimum on its own leaves nothing stopping someone filing a five-year leave.
-30 days is a guess; change it, or set `maxDays: 0` to remove the limit
-entirely.
+        const raw = ctx.args['duration'] as string;
+        const reason = ctx.args['reason'] as string;
 
-## Verified
+        let duration: number;
+        try {
+            duration = Number(ms(raw as any));
+        } catch (err) {
+            return ctx.reply({ embeds: [ getLoaInvalidDurationEmbed() ] });
+        }
+        if(!duration || Number.isNaN(duration) || duration <= 0) {
+            return ctx.reply({ embeds: [ getLoaInvalidDurationEmbed() ] });
+        }
+        if(duration < minMs()) {
+            return ctx.reply({ embeds: [ getLoaTooShortEmbed() ] });
+        }
+        if(duration > maxMs()) {
+            return ctx.reply({ embeds: [ getLoaTooLongEmbed() ] });
+        }
 
-```
-6h    -> REJECTED (too short)
-1d    -> REJECTED (too short)
-47h   -> REJECTED (too short)     just under, correctly caught
-2d    -> accepted
-48h   -> accepted                  same duration, different unit
-3d    -> accepted
-1w    -> accepted
-30d   -> accepted
-31d   -> REJECTED (too long)
-60d   -> REJECTED (too long)
-0d    -> INVALID
-```
+        try {
+            const existing = await provider.findActiveLoa(ctx.guild.id, ctx.user.id);
+            if(existing) return ctx.reply({ embeds: [ await getLoaAlreadyActiveEmbed(existing) ] });
 
-With `maxDays: 0`, `365d` is accepted.
+            const startsAt = new Date();
+            const endsAt = new Date(startsAt.getTime() + duration);
 
-The rejection embeds read the config, so if you change `minDays` to 3 the
-message says three days without any code change.
+            const loa = await provider.createLoa({
+                guildId: ctx.guild.id,
+                discordId: ctx.user.id,
+                reason,
+                startsAt,
+                endsAt,
+            });
 
-## Files
+            logAction('LOA' as any, ctx.user, `${reason} (until ${endsAt.toISOString()})`);
+            return ctx.reply({ embeds: [ await getLoaFiledEmbed(loa) ] });
+        } catch (err) {
+            console.error('[loa]', err);
+            return ctx.reply({ embeds: [ getUnexpectedErrorEmbed() ] });
+        }
+    }
+}
 
-```
-src/commands/events/loa.ts     min/max check
-src/handlers/locale.ts         "Too Short" embed added, "Too Long" reworded
-src/structures/types.d.ts      loa config type
-src/config.ts                  add the block by hand
-```
-
-No schema change — the `Loa` model already stores real start and end
-timestamps, so nothing about storage depends on the limits.
-
-## Worth reconsidering
-
-The quota integration was built around leave being short. Officers on leave are
-listed in a separate "On leave" section of `/quotas` rather than being excused,
-which made sense when leave capped at 2 days.
-
-With leave now running weeks, an officer could be on leave for a whole month and
-still show up every week with `0/1` under "On leave". That's arguably correct —
-it's visible and you decide — but if you'd rather they drop off the report
-entirely while on leave, that's a small change. Say the word.
+export default LoaCommand;
