@@ -349,6 +349,11 @@ export class RobloxClient {
         return getUserById(userId);
     }
 
+    /** Batched id -> user lookup, used by the XP leaderboard. */
+    async getUsersByIds(userIds: number[]): Promise<RobloxUser[]> {
+        return getUsersByIds(userIds);
+    }
+
     async getUsersByUsernames(usernames: string[]): Promise<RobloxUser[]> {
         const data = await publicApi('POST', `${USERS_BASE}/v1/usernames/users`, {
             usernames,
@@ -361,8 +366,17 @@ export class RobloxClient {
         }));
     }
 
+    /**
+     * Group instances are cached so the role cache survives across calls.
+     * The multigroup branch calls getGroup() on every command that targets a
+     * secondary group, and re-paginating the role list each time would burn
+     * the rate limit for nothing.
+     */
+    private groupCache = new Map<number, Group>();
+
     async getGroup(groupId: number): Promise<Group> {
-        const group = new Group(groupId);
+        const group = this.groupCache.get(groupId) || new Group(groupId);
+        this.groupCache.set(groupId, group);
 
         const info = await openCloud('GET', `/cloud/v2/groups/${groupId}`);
         group.name = info?.displayName;
