@@ -10,9 +10,13 @@ export interface BotConfig {
      */
     notificationTitle?: string;
     /**
-     * Optional thumbnail on those DMs, e.g. your group logo.
+     * Optional icon beside that name, e.g. your group logo.
      */
     notificationIconUrl?: string;
+    /**
+     * Footer on every DM. Set to an empty string to omit it.
+     */
+    notificationFooter?: string;
     /**
      * IANA timezone used to interpret event times like "8pm".
      * e.g. 'America/New_York'. Defaults to UTC.
