@@ -2,6 +2,7 @@ import { Client } from 'discord.js';
 import { config } from '../config';
 import { provider } from '../database';
 import { discordTime } from '../handlers/eventTime';
+import { getNotificationEmbed } from '../handlers/locale';
 
 /**
  * DMs the host before their event starts, and again when it is due.
@@ -51,7 +52,10 @@ const runCheck = async (client: Client) => {
 
             const rsvps = await provider.getRsvps(event.id, true);
             const host = await client.users.fetch(event.hostId);
-            await host.send(buildReminder(event, rsvps.length, starting));
+            await host.send({ embeds: [ getNotificationEmbed(
+                buildReminder(event, rsvps.length, starting),
+                starting ? 'Your event is starting' : 'Your event is coming up',
+            ) ] });
 
             await provider.markEventReminded(event.id, field);
 
