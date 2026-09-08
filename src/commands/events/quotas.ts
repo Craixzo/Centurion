@@ -35,12 +35,18 @@ class QuotasCommand extends Command {
             const counts = await provider.countEventsByAllHosts(ctx.guild.id, weekStart);
             const members = await ctx.guild.members.fetch();
 
+            // Anyone whose leave touched this week is listed separately rather
+            // than counted as short — visible, but not silently forgiven.
+            const loas = await provider.findLoasOverlapping(ctx.guild.id, weekStart, getWeekEnd());
+            const onLeave = new Set(loas.map((loa: any) => loa.discordId));
+
             const officers = [ ... members.values() ]
                 .filter((member: GuildMember) => !member.user.bot
                     && member.roles.cache.some((role) => config.quota.roleIds.includes(role.id)))
                 .map((member: GuildMember) => ({
                     userId: member.id,
                     hosted: counts[member.id] || 0,
+                    onLeave: onLeave.has(member.id),
                 }))
                 .sort((a, b) => b.hosted - a.hosted);
 
