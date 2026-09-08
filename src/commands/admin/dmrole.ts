@@ -4,11 +4,7 @@ import { Command } from '../../structures/Command';
 import { config } from '../../config';
 import { logAction } from '../../handlers/handleLogging';
 import { getUnexpectedErrorEmbed, getDmRoleResultEmbed } from '../../handlers/locale';
-
-const DM_DELAY_MS = 1500;   // Discord flags bots that bulk-DM faster than this
-const MAX_RECIPIENTS = 500; // stops a mistyped role blasting the whole server
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+import { sendMassDm, MAX_RECIPIENTS } from '../../handlers/massDm';
 
 class DMRoleCommand extends Command {
     constructor() {
@@ -81,19 +77,9 @@ class DMRoleCommand extends Command {
                 }) ] });
             }
 
-            let sent = 0;
-            const failed: string[] = [];
-
-            for(const member of targets) {
-                try {
-                    await member.send(message);
-                    sent += 1;
-                } catch (err) {
-                    // Closed DMs, blocked the bot, or not sharing a mutual server.
-                    failed.push(member.user.tag || member.user.username);
-                }
-                await sleep(DM_DELAY_MS);
-            }
+            // Shared with /eventdm: rate limiting, failure handling, and the
+            // NOTIFICATION FROM YELLONIA embed all live in massDm.ts.
+            const { sent, failed } = await sendMassDm(targets, message);
 
             logAction(
                 'Mass DM' as any, ctx.user, `Role <@&${roleId}> - ${sent} sent, ${failed.length} failed`,
