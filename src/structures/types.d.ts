@@ -187,6 +187,25 @@ export interface BotConfig {
          */
         autoRankup: boolean;
         /**
+         * Wipe a user's XP when they are fired or exiled. XP is global, so
+         * this clears it in every group, not just the one they were fired
+         * from. Defaults to false.
+         */
+        resetXpOnFire?: boolean;
+        /**
+         * XP awarded per Discord message. Set to 0 to disable message XP.
+         */
+        messageXp?: number;
+        /**
+         * Seconds a user must wait between message XP awards. Defaults to 60.
+         * Set to 0 for no cooldown (not recommended - XP becomes farmable).
+         */
+        messageCooldown?: number;
+        /**
+         * Channel IDs that never award message XP.
+         */
+        messageXpIgnoredChannels?: string[];
+        /**
          * Roles that users can rank up to.
          */
         roles?: {
