@@ -787,6 +787,7 @@ export const getQuotaEmbed = async (data: {
     hosted: number;
     required: number;
     exempt: boolean;
+    onLeave?: boolean;
     weekStart: Date;
     weekEnd: Date;
 }): Promise<EmbedBuilder> => {
@@ -795,6 +796,8 @@ export const getQuotaEmbed = async (data: {
 
     const status = data.exempt
         ? 'Not held to the quota.'
+        : data.onLeave && !met
+            ? `On leave. **${data.hosted}/${data.required}** hosted so far.`
         : met
             ? `Quota met. **${data.hosted}/${data.required}** events hosted.`
             : `**${data.hosted}/${data.required}** hosted \u2014 **${remaining}** to go.`;
@@ -820,7 +823,8 @@ export const getQuotaOverviewEmbed = async (data: {
     }
 
     const met = data.officers.filter((o) => o.hosted >= data.required);
-    const short = data.officers.filter((o) => o.hosted < data.required);
+    const leave = data.officers.filter((o) => o.hosted < data.required && (o as any).onLeave);
+    const short = data.officers.filter((o) => o.hosted < data.required && !(o as any).onLeave);
 
     const render = (list: { userId: string; hosted: number }[]) => {
         const out: string[] = [];
@@ -840,6 +844,9 @@ export const getQuotaOverviewEmbed = async (data: {
     const fields: any[] = [];
     fields.push({ name: `Met \u2014 ${met.length}`, value: met.length ? render(met) : '*Nobody yet.*', inline: false });
     fields.push({ name: `Short \u2014 ${short.length}`, value: short.length ? render(short) : '*Everyone is on track.*', inline: false });
+    if(leave.length > 0) {
+        fields.push({ name: `On leave \u2014 ${leave.length}`, value: render(leave), inline: false });
+    }
 
     return new EmbedBuilder()
         .setAuthor({ name: 'Weekly Quotas', iconURL: infoIconUrl })
@@ -859,4 +866,67 @@ export const getDenylistedEmbed = (hit: { reason: string; kind: 'user' | 'group'
         .setColor(redColor)
         .setDescription(`${source}\n\n**Reason:** ${hit.reason || 'No reason given.'}`)
         .setFooter({ text: 'Managed through RoWifi denylists.' });
+}
+
+/** Discord relative timestamp, so it renders in each viewer's timezone. */
+const ts = (date: Date, style = 'R'): string => `<t:${Math.floor(new Date(date).getTime() / 1000)}:${style}>`;
+
+export const getLoaInvalidDurationEmbed = (): EmbedBuilder => {
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Invalid Duration', iconURL: xmarkIconUrl })
+        .setColor(redColor)
+        .setDescription('Use a duration like `6h`, `1d` or `2d`.');
+}
+
+export const getLoaTooLongEmbed = (): EmbedBuilder => {
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Too Long', iconURL: xmarkIconUrl })
+        .setColor(redColor)
+        .setDescription('Leave cannot be longer than **2 days**. For anything longer, speak to high command.');
+}
+
+export const getLoaAlreadyActiveEmbed = async (loa: any): Promise<EmbedBuilder> => {
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Already On Leave', iconURL: xmarkIconUrl })
+        .setColor(redColor)
+        .setDescription(`You are already on leave until ${ts(loa.endsAt, 'f')} (${ts(loa.endsAt)}).\n\nUse \`/loaend\` to return early.`);
+}
+
+export const getLoaFiledEmbed = async (loa: any): Promise<EmbedBuilder> => {
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Leave Filed', iconURL: checkIconUrl })
+        .setColor(greenColor)
+        .setDescription(`<@${loa.discordId}> is on leave until ${ts(loa.endsAt, 'f')} (${ts(loa.endsAt)}).`)
+        .addFields({ name: 'Reason', value: loa.reason, inline: false })
+        .setFooter({ text: 'Use /loaend to return early.' });
+}
+
+export const getLoaEndedEmbed = async (loa: any): Promise<EmbedBuilder> => {
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Leave Ended', iconURL: checkIconUrl })
+        .setColor(greenColor)
+        .setDescription(`<@${loa.discordId}> is no longer on leave.`);
+}
+
+export const getLoaNotFoundEmbed = (): EmbedBuilder => {
+    return new EmbedBuilder()
+        .setAuthor({ name: 'No Active Leave', iconURL: xmarkIconUrl })
+        .setColor(redColor)
+        .setDescription('There is no active leave to end.');
+}
+
+export const getLoaListEmbed = async (loas: any[]): Promise<EmbedBuilder> => {
+    if(loas.length === 0) {
+        return new EmbedBuilder()
+            .setAuthor({ name: 'Active Leave', iconURL: infoIconUrl })
+            .setColor(mainColor)
+            .setDescription('Nobody is currently on leave.');
+    }
+
+    const body = loas.map((loa) => `<@${loa.discordId}> \u2014 back ${ts(loa.endsAt)}\n*${loa.reason}*`).join('\n\n');
+
+    return new EmbedBuilder()
+        .setAuthor({ name: `Active Leave \u2014 ${loas.length}`, iconURL: infoIconUrl })
+        .setColor(mainColor)
+        .setDescription(body.length > 4000 ? body.slice(0, 3990) + '\n\n…' : body);
 }
