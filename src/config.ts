@@ -23,6 +23,19 @@ export const config: BotConfig = {
         "223456789012345678": "887654321098765432",
     },
 
+    accountLinks: {
+        provider: 'rowifi',
+        guildId: '',
+        useDenylist: true,
+    },
+
+    quota: {
+        enabled: false,
+        roleIds: [],
+        perWeek: 1,
+        weekStartsOn: 1,
+    },
+
     logChannels: {
         actions: '',
         shout: '',
