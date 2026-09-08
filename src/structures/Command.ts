@@ -22,6 +22,7 @@ const argumentTypeMappings: Record<string, ApplicationCommandOptionType> = {
     SubcommandGroup: ApplicationCommandOptionType.SubcommandGroup,
     String: ApplicationCommandOptionType.String,
     Number: ApplicationCommandOptionType.Integer,
+    Boolean: ApplicationCommandOptionType.Boolean,
     RobloxUser: ApplicationCommandOptionType.String,
     RobloxRole: ApplicationCommandOptionType.String,
     DiscordUser: ApplicationCommandOptionType.User,
