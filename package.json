@@ -3,6 +3,9 @@
   "version": "8.0.0",
   "description": "The most advanced Discord to Roblox ranking bot available, open source and free, without any branding.",
   "main": "src/main.ts",
+  "prisma": {
+  "schema": "src/database/schema.prisma"
+  }
   "scripts": {
     "start": "ts-node src/main.ts",
     "build": "tsc --outDir dist",
