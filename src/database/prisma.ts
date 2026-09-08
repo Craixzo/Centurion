@@ -97,6 +97,51 @@ class PrismaProvider extends DatabaseProvider {
         const ahead = await this.db.xpRecord.count({ where: { xp: { gt: record.xp } } });
         return ahead + 1;
     }
+
+    // ------------------------------------------------------------ sessions
+
+    async createSession(data: any) {
+        return this.db.session.create({ data });
+    }
+
+    async findSessionByMessage(messageId: string) {
+        return this.db.session.findUnique({ where: { messageId } });
+    }
+
+    async findSessionById(id: string) {
+        return this.db.session.findUnique({ where: { id } });
+    }
+
+    async findRecentSessions(guildId: string, limit: number) {
+        return this.db.session.findMany({
+            where: { guildId },
+            orderBy: { createdAt: 'desc' },
+            take: limit,
+        });
+    }
+
+    /** Upsert, so clicking the other button just flips the answer. */
+    async setRsvp(sessionId: string, discordId: string, attending: boolean) {
+        await this.db.sessionRsvp.upsert({
+            where: { sessionId_discordId: { sessionId, discordId } },
+            update: { attending },
+            create: { sessionId, discordId, attending },
+        });
+    }
+
+    async getRsvps(sessionId: string, attending?: boolean) {
+        return this.db.sessionRsvp.findMany({
+            where: { sessionId, ... (attending !== undefined ? { attending } : {}) },
+        });
+    }
+
+    async removeRsvp(sessionId: string, discordId: string) {
+        await this.db.sessionRsvp.deleteMany({ where: { sessionId, discordId } });
+    }
+
+    async closeSession(id: string) {
+        await this.db.session.update({ where: { id }, data: { closed: true } });
+    }
 }
 
 export { PrismaProvider };
