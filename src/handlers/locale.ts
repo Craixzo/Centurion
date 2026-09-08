@@ -12,7 +12,7 @@ export const xmarkIconUrl = 'https://cdn.lengolabs.com/qbot-icons/xmark.png';
 export const infoIconUrl = 'https://cdn.lengolabs.com/qbot-icons/info.png';
 export const quoteIconUrl = 'https://cdn.lengolabs.com/qbot-icons/quote.png';
 
-export const mainColor = '#906FED';
+export const mainColor = '#BED231';
 export const greenColor = '#50C790';
 export const redColor = '#FA5757';
 
@@ -878,11 +878,20 @@ export const getLoaInvalidDurationEmbed = (): EmbedBuilder => {
         .setDescription('Use a duration like `6h`, `1d` or `2d`.');
 }
 
+export const getLoaTooShortEmbed = (): EmbedBuilder => {
+    const min = config.loa?.minDays ?? 2;
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Too Short', iconURL: xmarkIconUrl })
+        .setColor(redColor)
+        .setDescription(`Leave must be at least **${min} ${min === 1 ? 'day' : 'days'}**. For anything briefer, just let your officer know.`);
+}
+
 export const getLoaTooLongEmbed = (): EmbedBuilder => {
+    const max = config.loa?.maxDays ?? 30;
     return new EmbedBuilder()
         .setAuthor({ name: 'Too Long', iconURL: xmarkIconUrl })
         .setColor(redColor)
-        .setDescription('Leave cannot be longer than **2 days**. For anything longer, speak to high command.');
+        .setDescription(`Leave cannot be longer than **${max} days**. For anything longer, speak to high command.`);
 }
 
 export const getLoaAlreadyActiveEmbed = async (loa: any): Promise<EmbedBuilder> => {
@@ -948,4 +957,19 @@ export const getEventBadChannelEmbed = (): EmbedBuilder => {
         .setAuthor({ name: 'Invalid Channel', iconURL: xmarkIconUrl })
         .setColor(redColor)
         .setDescription('Events cannot be posted in that channel. Pick one from the dropdown.');
+}
+
+/**
+ * Every DM the bot sends is wrapped in this, so members can tell an official
+ * notification from someone impersonating the bot in their DMs.
+ */
+export const getNotificationEmbed = (body: string, heading?: string): EmbedBuilder => {
+    const embed = new EmbedBuilder()
+        .setTitle(config.notificationTitle || 'NOTIFICATION FROM YELLONIA')
+        .setColor(mainColor)
+        .setDescription(heading ? `**${heading}**\n\n${body}` : body)
+        .setTimestamp();
+
+    if(config.notificationIconUrl) embed.setThumbnail(config.notificationIconUrl);
+    return embed;
 }
