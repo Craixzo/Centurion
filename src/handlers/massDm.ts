@@ -15,7 +15,7 @@ export interface MassDmResult {
 /**
  * Sends a DM to each recipient with a delay between them.
  *
- * Shared by /dmrole and /sessiondm so the rate limiting and failure handling
+ * Shared by /dmrole and /eventdm so the rate limiting and failure handling
  * only exist in one place.
  */
 export const sendMassDm = async (
