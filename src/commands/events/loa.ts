@@ -6,25 +6,32 @@ import { provider } from '../../database';
 import { logAction } from '../../handlers/handleLogging';
 import {
     getLoaFiledEmbed,
+    getLoaTooShortEmbed,
     getLoaTooLongEmbed,
     getLoaInvalidDurationEmbed,
     getLoaAlreadyActiveEmbed,
     getUnexpectedErrorEmbed,
 } from '../../handlers/locale';
 
-export const MAX_LOA_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const minMs = () => (config.loa?.minDays ?? 2) * DAY_MS;
+const maxMs = () => {
+    const days = config.loa?.maxDays ?? 30;
+    return days > 0 ? days * DAY_MS : Infinity;
+}
 
 class LoaCommand extends Command {
     constructor() {
         super({
             trigger: 'loa',
-            description: 'Files a leave of absence. Maximum 2 days.',
+            description: 'Files a leave of absence. Minimum 2 days.',
             type: 'ChatInput',
             module: 'events',
             args: [
                 {
                     trigger: 'duration',
-                    description: 'How long? e.g. 6h, 1d, 2d. Maximum 2 days.',
+                    description: 'How long? Minimum 2 days, e.g. 2d, 5d, 2w.',
                     required: true,
                     type: 'String',
                 },
@@ -60,7 +67,10 @@ class LoaCommand extends Command {
         if(!duration || Number.isNaN(duration) || duration <= 0) {
             return ctx.reply({ embeds: [ getLoaInvalidDurationEmbed() ] });
         }
-        if(duration > MAX_LOA_MS) {
+        if(duration < minMs()) {
+            return ctx.reply({ embeds: [ getLoaTooShortEmbed() ] });
+        }
+        if(duration > maxMs()) {
             return ctx.reply({ embeds: [ getLoaTooLongEmbed() ] });
         }
 
