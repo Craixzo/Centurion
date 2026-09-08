@@ -5,7 +5,7 @@
   "main": "src/main.ts",
   "prisma": {
   "schema": "src/database/schema.prisma"
-  }
+  },
   "scripts": {
     "start": "ts-node src/main.ts",
     "build": "tsc --outDir dist",
