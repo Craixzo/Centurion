@@ -1,51 +1,76 @@
 import { config } from '../config';
 import { robloxClient } from '../main';
 import { BloxlinkResponse } from '../structures/types';
+import { getLinkedRobloxId } from './rowifi';
 import axios from 'axios';
 require('dotenv').config();
 
-let requestCount = 0;
-
 /**
- * Discord ID -> Roblox user, cached.
+ * Discord ID -> Roblox user.
  *
- * Bloxlink is capped at 60 lookups a minute for the whole bot, so anything
- * that runs per message (see events/messageXp.ts) must not hit it every time.
- * Links change rarely, so an hour of cache is plenty. Failures are cached
- * briefly too, otherwise every message from an unlinked user burns a request.
+ * Provider is config.accountLinks.provider. RoWifi allows 5 requests/second
+ * per token; Bloxlink caps the whole bot at 60/minute, which message XP would
+ * exhaust on its own. Either way results are cached, since links rarely change.
  */
 const CACHE_TTL = 60 * 60 * 1000;
 const MISS_TTL = 10 * 60 * 1000;
 const cache = new Map<string, { user: any; at: number }>();
 
-const getLinkedRobloxUser = async (discordId: string) => {
-    const cached = cache.get(discordId);
+let bloxlinkCount = 0;
+
+const linkGuildId = (guildId?: string): string => {
+    return guildId
+        || config.accountLinks?.guildId
+        || config.verificationChecks?.bloxlinkGuildId
+        || '';
+}
+
+const fetchFromRoWifi = async (discordId: string, guildId: string) => {
+    const robloxId = await getLinkedRobloxId(guildId, discordId);
+    if(!robloxId) return null;
+    return robloxClient.getUser(robloxId);
+}
+
+const fetchFromBloxlink = async (discordId: string, guildId: string) => {
+    if(bloxlinkCount >= 60) return null;
+    bloxlinkCount += 1;
+
+    const robloxStatus: BloxlinkResponse = (await axios.get(
+        `https://api.blox.link/v4/public/guilds/${guildId}/discord-to-roblox/${discordId}`,
+        { headers: { 'Authorization': process.env.BLOXLINK_KEY } },
+    )).data;
+    if(robloxStatus.error) throw new Error(robloxStatus.error);
+
+    return robloxClient.getUser(parseInt(robloxStatus.robloxID));
+}
+
+const getLinkedRobloxUser = async (discordId: string, guildId?: string) => {
+    const guild = linkGuildId(guildId);
+    const key = `${guild}:${discordId}`;
+
+    const cached = cache.get(key);
     if(cached) {
         const ttl = cached.user ? CACHE_TTL : MISS_TTL;
         if(Date.now() - cached.at < ttl) return cached.user;
     }
 
-    if(requestCount >= 60) return cached?.user ?? null;
-    requestCount += 1;
-
     try {
-        const robloxStatus: BloxlinkResponse = (await axios.get(
-            `https://api.blox.link/v4/public/guilds/${config.verificationChecks.bloxlinkGuildId}/discord-to-roblox/${discordId}`,
-            { headers: { 'Authorization': process.env.BLOXLINK_KEY } },
-        )).data;
-        if(robloxStatus.error) throw new Error(robloxStatus.error);
+        const provider = config.accountLinks?.provider || 'bloxlink';
+        const user = provider === 'rowifi'
+            ? await fetchFromRoWifi(discordId, guild)
+            : await fetchFromBloxlink(discordId, guild);
 
-        const robloxUser = await robloxClient.getUser(parseInt(robloxStatus.robloxID));
-        cache.set(discordId, { user: robloxUser, at: Date.now() });
-        return robloxUser;
+        cache.set(key, { user, at: Date.now() });
+        return user;
     } catch (err) {
-        cache.set(discordId, { user: null, at: Date.now() });
-        return null;
+        // Serve a stale hit rather than failing outright.
+        cache.set(key, { user: cached?.user ?? null, at: Date.now() });
+        return cached?.user ?? null;
     }
 }
 
 const refreshRateLimits = () => {
-    requestCount = 0;
+    bloxlinkCount = 0;
     setTimeout(refreshRateLimits, 60000);
 }
 setTimeout(refreshRateLimits, 60000);
