@@ -1,6 +1,7 @@
 import { Client, EmbedBuilder, Message, MessageReaction, PartialMessageReaction, PartialUser, User } from 'discord.js';
 import { provider } from '../database';
 import { mainColor, greenColor, quoteIconUrl } from './locale';
+import { discordTime } from './eventTime';
 
 export const ATTEND_EMOJI = '\u2705';  // :white_check_mark:
 export const DECLINE_EMOJI = '\u274C'; // :x:
@@ -25,7 +26,14 @@ const formatRoster = (ids: string[], emptyText: string): string => {
 
 export const buildEventEmbed = async (event: any, attendingIds: string[], declinedIds: string[] = []) => {
     const fields: any[] = [];
-    if(event.startsAt) fields.push({ name: 'Starts', value: event.startsAt, inline: false });
+    if(event.startsAt) {
+        fields.push({
+            name: 'Starts',
+            value: `${discordTime(event.startsAt)} (${discordTime(event.startsAt, 'R')})`,
+            inline: false,
+        });
+    }
+    if(event.gameLink) fields.push({ name: 'Game', value: event.gameLink, inline: false });
 
     fields.push({
         name: `${ATTEND_EMOJI} Attending \u2014 ${attendingIds.length}`,
@@ -43,7 +51,7 @@ export const buildEventEmbed = async (event: any, attendingIds: string[], declin
 
     return new EmbedBuilder()
         .setAuthor({ name: event.closed ? 'Event (closed)' : 'Event Announcement', iconURL: quoteIconUrl })
-        .setTitle(event.title)
+        .setTitle(event.type ? `[${event.type}] ${event.title}` : event.title)
         .setDescription(event.details || null)
         .setColor(event.closed ? greenColor : mainColor)
         .addFields(fields)
