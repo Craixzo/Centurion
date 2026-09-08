@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { DatabaseProvider } from '../structures/DatabaseProvider';
-import { DatabaseUser } from '../structures/types';
+import { DatabaseUser, GroupUserRecord } from '../structures/types';
 require('dotenv').config();
 
 /**
@@ -39,22 +39,22 @@ class PrismaProvider extends DatabaseProvider {
         return { ... userData, xp: xpRecord.xp } as DatabaseUser;
     }
 
-    async findSuspendedUsers(groupId?: number | string): Promise<DatabaseUser[]> {
+    async findSuspendedUsers(groupId?: number | string): Promise<GroupUserRecord[]> {
         return await this.db.user.findMany({
             where: {
                 suspendedUntil: { not: null },
                 ... (groupId !== undefined ? { groupId: String(groupId) } : {}),
             },
-        }) as DatabaseUser[];
+        });
     }
 
-    async findBannedUsers(groupId?: number | string): Promise<DatabaseUser[]> {
+    async findBannedUsers(groupId?: number | string): Promise<GroupUserRecord[]> {
         return await this.db.user.findMany({
             where: {
                 isBanned: true,
                 ... (groupId !== undefined ? { groupId: String(groupId) } : {}),
             },
-        }) as DatabaseUser[];
+        });
     }
 
     async updateUser(robloxId: string, groupId: number | string, data: any) {
@@ -152,6 +152,21 @@ class PrismaProvider extends DatabaseProvider {
         const counts: Record<string, number> = {};
         for(const event of events) counts[event.hostId] = (counts[event.hostId] || 0) + 1;
         return counts;
+    }
+
+    /** Upcoming or just-started events that still owe the host a reminder. */
+    async findEventsNeedingReminders(before: Date) {
+        return this.db.event.findMany({
+            where: {
+                closed: false,
+                startsAt: { not: null, lte: before },
+                OR: [ { remind5Sent: false }, { remindStartSent: false } ],
+            },
+        });
+    }
+
+    async markEventReminded(id: string, field: 'remind5Sent' | 'remindStartSent') {
+        await this.db.event.update({ where: { id }, data: { [field]: true } });
     }
 
     // ---------------------------------------------------------------- loa
