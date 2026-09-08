@@ -7,11 +7,72 @@ datasource db {
   url      = "file:qbotdata.db"
 }
 
+/// Per-group state. Suspensions and bans apply to one community only, so the
+/// same Roblox user can hold different state in each group the bot manages.
 model User {
   id             String    @id @default(uuid())
-  robloxId       String    @unique
-  xp             Int       @default(0)
+  robloxId       String
+  groupId        String
   suspendedUntil DateTime?
   unsuspendRank  Int?
   isBanned       Boolean   @default(false)
+
+  @@unique([robloxId, groupId])
+  @@index([groupId])
+}
+
+/// XP is global: one balance per Roblox user, shared across every group and
+/// every Discord server.
+model XpRecord {
+  robloxId String @id
+  xp       Int    @default(0)
+
+  @@index([xp])
+}
+
+/// An event announcement. RSVPs are attached to the posted message, so they
+/// survive bot restarts.
+model Event {
+  id        String   @id @default(uuid())
+  guildId   String
+  channelId String
+  messageId String   @unique
+  title     String
+  details   String?
+  startsAt  String?
+  hostId    String
+  closed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  rsvps EventRsvp[]
+
+  @@index([guildId])
+  @@index([hostId])
+}
+
+model EventRsvp {
+  id        String  @id @default(uuid())
+  eventId   String
+  discordId String
+  attending Boolean @default(true)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, discordId])
+}
+
+/// Leave of absence. Capped at 2 days by the command, but stored as real
+/// timestamps so overlap checks stay simple.
+model Loa {
+  id        String    @id @default(uuid())
+  guildId   String
+  discordId String
+  reason    String
+  startsAt  DateTime  @default(now())
+  endsAt    DateTime
+  endedAt   DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([guildId, discordId])
+  @@index([endsAt])
 }
