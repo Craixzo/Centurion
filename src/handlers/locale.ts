@@ -680,28 +680,28 @@ export const getDmRoleResultEmbed = async (result: {
         .setDescription(`Messaged <@&${result.roleId}>.\n\n${lines.join('\n')}`);
 }
 
-export const getSessionCreatedEmbed = async (session: any, url: string): Promise<EmbedBuilder> => {
+export const getEventCreatedEmbed = async (event: any, url: string): Promise<EmbedBuilder> => {
     return new EmbedBuilder()
-        .setAuthor({ name: 'Session Created', iconURL: checkIconUrl })
+        .setAuthor({ name: 'Event Created', iconURL: checkIconUrl })
         .setColor(greenColor)
-        .setDescription(`**${session.title}** has been posted.\n\n[Jump to announcement](${url})`)
-        .addFields({ name: 'Session ID', value: `\`${session.id}\``, inline: false })
-        .setFooter({ text: 'Use /sessiondm with this ID to message attendees.' });
+        .setDescription(`**${event.title}** has been posted.\n\n[Jump to announcement](${url})`)
+        .addFields({ name: 'Event ID', value: `\`${event.id}\``, inline: false })
+        .setFooter({ text: 'Use /eventdm with this ID to message attendees.' });
 }
 
-export const getSessionNotFoundEmbed = (): EmbedBuilder => {
+export const getEventNotFoundEmbed = (): EmbedBuilder => {
     return new EmbedBuilder()
-        .setAuthor({ name: 'Session Not Found', iconURL: xmarkIconUrl })
+        .setAuthor({ name: 'Event Not Found', iconURL: xmarkIconUrl })
         .setColor(redColor)
-        .setDescription('No session with that ID. Use `/sessions` to list recent ones.');
+        .setDescription('No event with that ID. Use `/events` to list recent ones.');
 }
 
-export const getSessionDmResultEmbed = async (session: any, result: { sent: number; failed: string[]; capped: boolean; total: number }): Promise<EmbedBuilder> => {
+export const getEventDmResultEmbed = async (event: any, result: { sent: number; failed: string[]; capped: boolean; total: number }): Promise<EmbedBuilder> => {
     if(result.total === 0) {
         return new EmbedBuilder()
-            .setAuthor({ name: 'Session DM', iconURL: infoIconUrl })
+            .setAuthor({ name: 'Event DM', iconURL: infoIconUrl })
             .setColor(redColor)
-            .setDescription(`Nobody has marked themselves attending **${session.title}** yet.`);
+            .setDescription(`Nobody has marked themselves attending **${event.title}** yet.`);
     }
 
     const lines = [ `Sent: **${result.sent}**`, `Failed: **${result.failed.length}**` ];
@@ -711,17 +711,17 @@ export const getSessionDmResultEmbed = async (session: any, result: { sent: numb
     }
 
     return new EmbedBuilder()
-        .setAuthor({ name: 'Session DM', iconURL: infoIconUrl })
+        .setAuthor({ name: 'Event DM', iconURL: infoIconUrl })
         .setColor(result.failed.length === 0 ? greenColor : mainColor)
-        .setDescription(`Messaged attendees of **${session.title}**.\n\n${lines.join('\n')}`);
+        .setDescription(`Messaged attendees of **${event.title}**.\n\n${lines.join('\n')}`);
 }
 
-export const getSessionListEmbed = async (sessions: any[]): Promise<EmbedBuilder> => {
-    const body = sessions.map((s) => `\`${s.id}\`\n**${s.title}**${s.closed ? ' (closed)' : ''}`).join('\n\n');
+export const getEventListEmbed = async (events: any[]): Promise<EmbedBuilder> => {
+    const body = events.map((s) => `\`${s.id}\`\n**${s.title}**${s.closed ? ' (closed)' : ''}`).join('\n\n');
     return new EmbedBuilder()
-        .setAuthor({ name: 'Recent Sessions', iconURL: infoIconUrl })
+        .setAuthor({ name: 'Recent Events', iconURL: infoIconUrl })
         .setColor(mainColor)
-        .setDescription(sessions.length ? body : 'No sessions have been created in this server yet.');
+        .setDescription(events.length ? body : 'No events have been created in this server yet.');
 }
 
 const formatIdList = (ids: string[], empty: string): string => {
@@ -740,7 +740,7 @@ const formatIdList = (ids: string[], empty: string): string => {
     return out.join(', ');
 }
 
-export const getSessionRosterEmbed = async (session: any, roster: {
+export const getEventRosterEmbed = async (event: any, roster: {
     attending: string[];
     declined: string[];
     noResponse: string[];
@@ -760,11 +760,103 @@ export const getSessionRosterEmbed = async (session: any, roster: {
     }
 
     return new EmbedBuilder()
-        .setAuthor({ name: 'Session Roster', iconURL: infoIconUrl })
-        .setTitle(session.title)
+        .setAuthor({ name: 'Event Roster', iconURL: infoIconUrl })
+        .setTitle(event.title)
         .setColor(mainColor)
         .addFields(fields)
         .setFooter({ text: roster.roleId
             ? 'No response is measured against the role you specified.'
             : 'Pass a role to also see who has not replied.' });
+}
+
+const formatWeek = (start: Date, end: Date): string => {
+    const opts: any = { month: 'short', day: 'numeric' };
+    const last = new Date(end.getTime() - 1);
+    return `${start.toLocaleDateString('en-US', opts)} \u2013 ${last.toLocaleDateString('en-US', opts)}`;
+}
+
+export const getQuotaDisabledEmbed = (): EmbedBuilder => {
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Quota', iconURL: infoIconUrl })
+        .setColor(redColor)
+        .setDescription('The quota system is not enabled. Set `quota.enabled` and `quota.roleIds` in the config.');
+}
+
+export const getQuotaEmbed = async (data: {
+    userId: string;
+    hosted: number;
+    required: number;
+    exempt: boolean;
+    weekStart: Date;
+    weekEnd: Date;
+}): Promise<EmbedBuilder> => {
+    const met = data.hosted >= data.required;
+    const remaining = Math.max(data.required - data.hosted, 0);
+
+    const status = data.exempt
+        ? 'Not held to the quota.'
+        : met
+            ? `Quota met. **${data.hosted}/${data.required}** events hosted.`
+            : `**${data.hosted}/${data.required}** hosted \u2014 **${remaining}** to go.`;
+
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Weekly Quota', iconURL: infoIconUrl })
+        .setColor(data.exempt ? mainColor : met ? greenColor : redColor)
+        .setDescription(`<@${data.userId}>\n\n${status}`)
+        .setFooter({ text: formatWeek(data.weekStart, data.weekEnd) });
+}
+
+export const getQuotaOverviewEmbed = async (data: {
+    officers: { userId: string; hosted: number }[];
+    required: number;
+    weekStart: Date;
+    weekEnd: Date;
+}): Promise<EmbedBuilder> => {
+    if(data.officers.length === 0) {
+        return new EmbedBuilder()
+            .setAuthor({ name: 'Weekly Quotas', iconURL: infoIconUrl })
+            .setColor(redColor)
+            .setDescription('Nobody holds a quota role.');
+    }
+
+    const met = data.officers.filter((o) => o.hosted >= data.required);
+    const short = data.officers.filter((o) => o.hosted < data.required);
+
+    const render = (list: { userId: string; hosted: number }[]) => {
+        const out: string[] = [];
+        let length = 0;
+        for(const o of list) {
+            const line = `<@${o.userId}> \u2014 ${o.hosted}/${data.required}`;
+            if(length + line.length + 1 > 950) {
+                out.push(`and **${list.length - out.length}** more`);
+                break;
+            }
+            out.push(line);
+            length += line.length + 1;
+        }
+        return out.join('\n');
+    }
+
+    const fields: any[] = [];
+    fields.push({ name: `Met \u2014 ${met.length}`, value: met.length ? render(met) : '*Nobody yet.*', inline: false });
+    fields.push({ name: `Short \u2014 ${short.length}`, value: short.length ? render(short) : '*Everyone is on track.*', inline: false });
+
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Weekly Quotas', iconURL: infoIconUrl })
+        .setColor(short.length === 0 ? greenColor : mainColor)
+        .setDescription(`**${met.length}/${data.officers.length}** officers have met their quota of **${data.required}** this week.`)
+        .addFields(fields)
+        .setFooter({ text: formatWeek(data.weekStart, data.weekEnd) });
+}
+
+export const getDenylistedEmbed = (hit: { reason: string; kind: 'user' | 'group'; groupId?: string }): EmbedBuilder => {
+    const source = hit.kind === 'group'
+        ? `They are in a denylisted group (\`${hit.groupId}\`).`
+        : 'They are on the denylist.';
+
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Denylisted', iconURL: xmarkIconUrl })
+        .setColor(redColor)
+        .setDescription(`${source}\n\n**Reason:** ${hit.reason || 'No reason given.'}`)
+        .setFooter({ text: 'Managed through RoWifi denylists.' });
 }
