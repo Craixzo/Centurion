@@ -65,7 +65,7 @@ class EventDMCommand extends Command {
                 } catch (err) { /* account gone */ }
             }
 
-            const result = await sendMassDm(users, `**${event.title}**\n\n${message}`);
+            const result = await sendMassDm(users, message, event.title);
 
             if(close) await provider.closeEvent(eventId);
             logAction('Event DM' as any, ctx.user, `${event.title} - ${result.sent} sent, ${result.failed.length} failed`);
