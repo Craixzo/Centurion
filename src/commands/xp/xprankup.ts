@@ -1,6 +1,7 @@
 import { discordClient, robloxClient } from '../../main';
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
+import { checkDenylist } from '../../handlers/denylist';
 import { resolveGroup } from '../../handlers/groupResolver';
 import {
     getInvalidRobloxUserEmbed,
@@ -10,6 +11,7 @@ import {
     getSuccessfulXPRankupEmbed,
     getNoRankupAvailableEmbed,
     getNoPermissionEmbed,
+    getDenylistedEmbed,
 } from '../../handlers/locale';
 import { checkActionEligibility } from '../../handlers/verificationChecks';
 import { config } from '../../config';
@@ -76,6 +78,9 @@ class XPRankupCommand extends Command {
         }
 
         const groupRoles = await robloxGroup.getRoles();
+        const denied = ctx.guild ? await checkDenylist(ctx.guild.id, robloxUser.id) : null;
+        if(denied) return ctx.reply({ embeds: [ getDenylistedEmbed(denied) ] });
+
         const userData = await provider.findUser(robloxUser.id.toString(), robloxGroup.id);
         const role = await findEligibleRole(robloxMember, groupRoles, userData.xp);
         if(!role) return ctx.reply({ embeds: [ getNoRankupAvailableEmbed() ] });
