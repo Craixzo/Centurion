@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:qbotdata.db"
+  url      = "file:../../qbotdata.db"
 }
 
 /// Per-group state. Suspensions and bans apply to one community only, so the
