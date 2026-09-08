@@ -3,20 +3,20 @@ import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
 import { config } from '../../config';
 import { provider } from '../../database';
-import { getSessionRosterEmbed, getSessionNotFoundEmbed, getUnexpectedErrorEmbed } from '../../handlers/locale';
+import { getEventRosterEmbed, getEventNotFoundEmbed, getUnexpectedErrorEmbed } from '../../handlers/locale';
 
-class SessionRosterCommand extends Command {
+class EventRosterCommand extends Command {
     constructor() {
         super({
-            trigger: 'sessionroster',
-            description: 'Shows who is attending a session, and who has not replied.',
+            trigger: 'eventroster',
+            description: 'Shows who is attending a event, and who has not replied.',
             type: 'ChatInput',
-            module: 'sessions',
+            module: 'events',
             aliases: [ 'roster' ],
             args: [
                 {
-                    trigger: 'session-id',
-                    description: 'The ID of the session.',
+                    trigger: 'event-id',
+                    description: 'The ID of the event.',
                     required: true,
                     type: 'String',
                 },
@@ -38,16 +38,16 @@ class SessionRosterCommand extends Command {
     }
 
     async run(ctx: CommandContext) {
-        const sessionId = ctx.args['session-id'] as string;
+        const eventId = ctx.args['event-id'] as string;
         const roleId = typeof ctx.args['role'] === 'string'
             ? ctx.args['role']
             : (ctx.args['role'] as Role)?.id;
 
         try {
-            const session = await provider.findSessionById(sessionId);
-            if(!session) return ctx.reply({ embeds: [ getSessionNotFoundEmbed() ] });
+            const event = await provider.findEventById(eventId);
+            if(!event) return ctx.reply({ embeds: [ getEventNotFoundEmbed() ] });
 
-            const rsvps = await provider.getRsvps(sessionId);
+            const rsvps = await provider.getRsvps(eventId);
             const attending = rsvps.filter((r: any) => r.attending).map((r: any) => r.discordId);
             const declined = rsvps.filter((r: any) => !r.attending).map((r: any) => r.discordId);
 
@@ -64,14 +64,14 @@ class SessionRosterCommand extends Command {
                     .map((member: GuildMember) => member.id);
             }
 
-            return ctx.reply({ embeds: [ await getSessionRosterEmbed(session, {
+            return ctx.reply({ embeds: [ await getEventRosterEmbed(event, {
                 attending, declined, noResponse, roleId,
             }) ] });
         } catch (err) {
-            console.error('[sessionroster]', err);
+            console.error('[eventroster]', err);
             return ctx.reply({ embeds: [ getUnexpectedErrorEmbed() ] });
         }
     }
 }
 
-export default SessionRosterCommand;
+export default EventRosterCommand;
