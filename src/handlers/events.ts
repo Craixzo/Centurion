@@ -23,9 +23,9 @@ const formatRoster = (ids: string[], emptyText: string): string => {
     return mentions.join(', ');
 }
 
-export const buildSessionEmbed = async (session: any, attendingIds: string[], declinedIds: string[] = []) => {
+export const buildEventEmbed = async (event: any, attendingIds: string[], declinedIds: string[] = []) => {
     const fields: any[] = [];
-    if(session.startsAt) fields.push({ name: 'Starts', value: session.startsAt, inline: false });
+    if(event.startsAt) fields.push({ name: 'Starts', value: event.startsAt, inline: false });
 
     fields.push({
         name: `${ATTEND_EMOJI} Attending \u2014 ${attendingIds.length}`,
@@ -42,29 +42,29 @@ export const buildSessionEmbed = async (session: any, attendingIds: string[], de
     }
 
     return new EmbedBuilder()
-        .setAuthor({ name: session.closed ? 'Session (closed)' : 'Session Announcement', iconURL: quoteIconUrl })
-        .setTitle(session.title)
-        .setDescription(session.details || null)
-        .setColor(session.closed ? greenColor : mainColor)
+        .setAuthor({ name: event.closed ? 'Event (closed)' : 'Event Announcement', iconURL: quoteIconUrl })
+        .setTitle(event.title)
+        .setDescription(event.details || null)
+        .setColor(event.closed ? greenColor : mainColor)
         .addFields(fields)
-        .setFooter({ text: session.closed
+        .setFooter({ text: event.closed
             ? 'RSVPs are closed.'
             : `React ${ATTEND_EMOJI} to attend or ${DECLINE_EMOJI} if you can't make it.` });
 }
 
 /** Adds the two RSVP reactions to a freshly posted announcement. */
-export const seedSessionReactions = async (message: Message) => {
+export const seedEventReactions = async (message: Message) => {
     await message.react(ATTEND_EMOJI);
     await message.react(DECLINE_EMOJI);
 }
 
-const refreshAnnouncement = async (message: Message, session: any) => {
-    const all = await provider.getRsvps(session.id);
+const refreshAnnouncement = async (message: Message, event: any) => {
+    const all = await provider.getRsvps(event.id);
     const attending = all.filter((r: any) => r.attending).map((r: any) => r.discordId);
     const declined = all.filter((r: any) => !r.attending).map((r: any) => r.discordId);
 
     try {
-        await message.edit({ embeds: [ await buildSessionEmbed(session, attending, declined) ] });
+        await message.edit({ embeds: [ await buildEventEmbed(event, attending, declined) ] });
     } catch (err) { /* deleted or not editable */ }
 }
 
@@ -90,18 +90,18 @@ const handleReaction = async (
     if(reaction.message.partial) await reaction.message.fetch();
 
     const message = reaction.message as Message;
-    const session = await provider.findSessionByMessage(message.id);
-    if(!session) return;
+    const event = await provider.findEventByMessage(message.id);
+    if(!event) return;
 
     const attending = emoji === ATTEND_EMOJI;
 
-    if(session.closed) {
+    if(event.closed) {
         if(added) await reaction.users.remove(user.id).catch(() => {});
         return;
     }
 
     if(added) {
-        await provider.setRsvp(session.id, user.id, attending);
+        await provider.setRsvp(event.id, user.id, attending);
 
         // Clear the opposite reaction so the two lists stay exclusive.
         const opposite = attending ? DECLINE_EMOJI : ATTEND_EMOJI;
@@ -109,22 +109,22 @@ const handleReaction = async (
         if(oppositeReaction) await oppositeReaction.users.remove(user.id).catch(() => {});
     } else {
         // Only clear the RSVP if they removed the reaction that set it.
-        const current = await provider.getRsvps(session.id);
+        const current = await provider.getRsvps(event.id);
         const theirs = current.find((r: any) => r.discordId === user.id);
         if(theirs && theirs.attending === attending) {
-            await provider.removeRsvp(session.id, user.id);
+            await provider.removeRsvp(event.id, user.id);
         }
     }
 
-    await refreshAnnouncement(message, session);
+    await refreshAnnouncement(message, event);
 }
 
-export const registerSessionReactions = (client: Client) => {
+export const registerEventReactions = (client: Client) => {
     client.on('messageReactionAdd', async (reaction, user) => {
         try {
             await handleReaction(reaction, user, true);
         } catch (err) {
-            console.error('[session reaction add]', err);
+            console.error('[event reaction add]', err);
         }
     });
 
@@ -132,7 +132,7 @@ export const registerSessionReactions = (client: Client) => {
         try {
             await handleReaction(reaction, user, false);
         } catch (err) {
-            console.error('[session reaction remove]', err);
+            console.error('[event reaction remove]', err);
         }
     });
 }
