@@ -4,20 +4,20 @@ import { Command } from '../../structures/Command';
 import { config } from '../../config';
 import { provider } from '../../database';
 import { sendMassDm } from '../../handlers/massDm';
-import { getUnexpectedErrorEmbed, getSessionDmResultEmbed, getSessionNotFoundEmbed } from '../../handlers/locale';
+import { getUnexpectedErrorEmbed, getEventDmResultEmbed, getEventNotFoundEmbed } from '../../handlers/locale';
 import { logAction } from '../../handlers/handleLogging';
 
-class SessionDMCommand extends Command {
+class EventDMCommand extends Command {
     constructor() {
         super({
-            trigger: 'sessiondm',
-            description: 'DMs everyone who marked themselves attending a session.',
+            trigger: 'eventdm',
+            description: 'DMs everyone who marked themselves attending a event.',
             type: 'ChatInput',
-            module: 'sessions',
+            module: 'events',
             args: [
                 {
-                    trigger: 'session-id',
-                    description: 'The ID shown when the session was created.',
+                    trigger: 'event-id',
+                    description: 'The ID shown when the event was created.',
                     required: true,
                     type: 'String',
                 },
@@ -29,7 +29,7 @@ class SessionDMCommand extends Command {
                 },
                 {
                     trigger: 'close',
-                    description: 'Close RSVPs for this session as well?',
+                    description: 'Close RSVPs for this event as well?',
                     required: false,
                     type: 'Boolean',
                 },
@@ -45,17 +45,17 @@ class SessionDMCommand extends Command {
     }
 
     async run(ctx: CommandContext) {
-        const sessionId = ctx.args['session-id'] as string;
+        const eventId = ctx.args['event-id'] as string;
         const message = ctx.args['message'] as string;
         const close = Boolean(ctx.args['close']);
 
         try {
-            const session = await provider.findSessionById(sessionId);
-            if(!session) return ctx.reply({ embeds: [ getSessionNotFoundEmbed() ] });
+            const event = await provider.findEventById(eventId);
+            if(!event) return ctx.reply({ embeds: [ getEventNotFoundEmbed() ] });
 
-            const rsvps = await provider.getRsvps(sessionId, true);
+            const rsvps = await provider.getRsvps(eventId, true);
             if(rsvps.length === 0) {
-                return ctx.reply({ embeds: [ await getSessionDmResultEmbed(session, { sent: 0, failed: [], capped: false, total: 0 }) ] });
+                return ctx.reply({ embeds: [ await getEventDmResultEmbed(event, { sent: 0, failed: [], capped: false, total: 0 }) ] });
             }
 
             const users = [];
@@ -65,21 +65,21 @@ class SessionDMCommand extends Command {
                 } catch (err) { /* account gone */ }
             }
 
-            const result = await sendMassDm(users, `**${session.title}**\n\n${message}`);
+            const result = await sendMassDm(users, `**${event.title}**\n\n${message}`);
 
-            if(close) await provider.closeSession(sessionId);
-            logAction('Session DM' as any, ctx.user, `${session.title} - ${result.sent} sent, ${result.failed.length} failed`);
+            if(close) await provider.closeEvent(eventId);
+            logAction('Event DM' as any, ctx.user, `${event.title} - ${result.sent} sent, ${result.failed.length} failed`);
 
             try {
-                return await ctx.reply({ embeds: [ await getSessionDmResultEmbed(session, result) ] });
+                return await ctx.reply({ embeds: [ await getEventDmResultEmbed(event, result) ] });
             } catch (err) {
-                console.log(`[sessiondm] finished after the interaction expired: ${result.sent} sent.`);
+                console.log(`[eventdm] finished after the interaction expired: ${result.sent} sent.`);
             }
         } catch (err) {
-            console.error('[sessiondm]', err);
+            console.error('[eventdm]', err);
             return ctx.reply({ embeds: [ getUnexpectedErrorEmbed() ] });
         }
     }
 }
 
-export default SessionDMCommand;
+export default EventDMCommand;
