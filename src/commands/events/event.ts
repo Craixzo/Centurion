@@ -5,21 +5,46 @@ import { Command } from '../../structures/Command';
 import { config } from '../../config';
 import { provider } from '../../database';
 import { buildEventEmbed, seedEventReactions } from '../../handlers/events';
-import { getUnexpectedErrorEmbed, getEventCreatedEmbed } from '../../handlers/locale';
+import { parseEventTime } from '../../handlers/eventTime';
+import { getUnexpectedErrorEmbed, getEventCreatedEmbed, getEventBadTimeEmbed, getEventBadChannelEmbed } from '../../handlers/locale';
 import { logAction } from '../../handlers/handleLogging';
+
+const channelChoices = () => (config.eventChannels || []).map((channel) => ({
+    name: channel.name,
+    value: channel.id,
+}));
 
 class EventCommand extends Command {
     constructor() {
         super({
             trigger: 'event',
-            description: 'Announces a event that members can RSVP to.',
+            description: 'Announces an event that members can RSVP to.',
             type: 'ChatInput',
             module: 'events',
             args: [
                 {
+                    trigger: 'type',
+                    description: 'What kind of event is this?',
+                    required: true,
+                    type: 'String',
+                    choices: config.eventTypes || [],
+                },
+                {
                     trigger: 'title',
                     description: 'What is the event called?',
                     required: true,
+                    type: 'String',
+                },
+                {
+                    trigger: 'starts',
+                    description: 'When? e.g. 8pm, 20:00, 2026-09-12 20:00, in 2h',
+                    required: true,
+                    type: 'String',
+                },
+                {
+                    trigger: 'game',
+                    description: 'Link to the Roblox game or private server.',
+                    required: false,
                     type: 'String',
                 },
                 {
@@ -29,16 +54,11 @@ class EventCommand extends Command {
                     type: 'String',
                 },
                 {
-                    trigger: 'starts',
-                    description: 'When does it start? Free text, e.g. "8pm EST" or a Discord timestamp.',
-                    required: false,
-                    type: 'String',
-                },
-                {
                     trigger: 'channel',
                     description: 'Where should it be posted? Defaults to this channel.',
                     required: false,
-                    type: 'DiscordChannel',
+                    type: 'String',
+                    choices: channelChoices(),
                 },
             ],
             permissions: [
@@ -54,28 +74,33 @@ class EventCommand extends Command {
     async run(ctx: CommandContext) {
         if(!ctx.guild) return ctx.reply({ content: 'This command only works inside a server.' });
 
+        const eventType = ctx.args['type'] as string;
         const title = ctx.args['title'] as string;
         const details = (ctx.args['details'] as string) || null;
-        const startsAt = (ctx.args['starts'] as string) || null;
+        const gameLink = (ctx.args['game'] as string) || null;
 
-        const channelId = typeof ctx.args['channel'] === 'string'
-            ? ctx.args['channel']
-            : (ctx.args['channel'] as any)?.id;
+        const startsAt = parseEventTime(ctx.args['starts'] as string);
+        if(!startsAt) return ctx.reply({ embeds: [ getEventBadTimeEmbed() ] });
+
+        const allowed = config.eventChannels || [];
+        const requested = ctx.args['channel'] as string;
+
+        if(requested && allowed.length > 0 && !allowed.some((c) => c.id === requested)) {
+            return ctx.reply({ embeds: [ getEventBadChannelEmbed() ] });
+        }
 
         try {
-            const channel = (channelId
-                ? await discordClient.channels.fetch(channelId)
+            const channel = (requested
+                ? await discordClient.channels.fetch(requested)
                 : ctx.subject.channel) as TextChannel;
 
             if(!channel || !channel.isTextBased()) {
-                return ctx.reply({ embeds: [ getUnexpectedErrorEmbed() ] });
+                return ctx.reply({ embeds: [ getEventBadChannelEmbed() ] });
             }
 
-            // Post first so we have a message ID, then attach the buttons.
-            const draft = { title, details, startsAt, closed: false };
-            const message = await channel.send({
-                embeds: [ await buildEventEmbed(draft, []) ],
-            });
+            // Post first so we have a message ID, then attach the reactions.
+            const draft = { title, details, type: eventType, gameLink, startsAt, closed: false };
+            const message = await channel.send({ embeds: [ await buildEventEmbed(draft, []) ] });
 
             const event = await provider.createEvent({
                 guildId: ctx.guild.id,
@@ -83,6 +108,8 @@ class EventCommand extends Command {
                 messageId: message.id,
                 title,
                 details,
+                type: eventType,
+                gameLink,
                 startsAt,
                 hostId: ctx.user.id,
             });
@@ -90,8 +117,7 @@ class EventCommand extends Command {
             await message.edit({ embeds: [ await buildEventEmbed(event, []) ] });
             await seedEventReactions(message);
 
-            logAction('Event Created' as any, ctx.user, `${title} (${event.id})`);
-
+            logAction('Event Created' as any, ctx.user, `${eventType}: ${title} (${event.id})`);
             return ctx.reply({ embeds: [ await getEventCreatedEmbed(event, message.url) ] });
         } catch (err) {
             console.error('[event]', err);
