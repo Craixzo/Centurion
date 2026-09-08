@@ -438,6 +438,19 @@ export declare type BloxlinkResponse = {
     resolved: any;
 }
 
+/**
+ * A per-group user row as stored. XP lives in a separate global table, so it
+ * is absent here — see DatabaseUser for the merged shape returned by findUser.
+ */
+export declare type GroupUserRecord = {
+    id: string;
+    robloxId: string;
+    groupId: string;
+    suspendedUntil?: Date;
+    unsuspendRank?: number;
+    isBanned: boolean;
+}
+
 export declare type DatabaseUser = {
     /**
      * Database-generated UUID for this user. No relevance to the Roblox or Discord IDs; you should ignore this value.
