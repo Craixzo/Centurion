@@ -2,28 +2,26 @@ import { ActivityType } from 'discord.js';
 import { BotConfig } from './structures/types'; 
 
 export const config: BotConfig = {
-    groupId: 5801322,
-    guildGroups: {
-    "YOUR_MAIN_DISCORD_GUILD_ID": 5801322,
-    },
+    groupId: 0,
     slashCommands: true,
     legacyCommands: {
         enabled: true,
         prefixes: ['Y!'],
     },
     permissions: {
-        all: [''],
+        all: ['1440292084547321877'],
         ranking: [''],
         users: [''],
         shout: [''],
         join: [''],
         signal: [''],
-        admin: [''],
+        admin: ['1440292084547321877'],
     },
     
-    secondaryGroups: [
-        { name: 'Academy', id: 12345678 },
-    ],
+    boosterRoles: {
+        "737823381218525184": "1252782745848123482", // guildId : boosterRoleId
+        "223456789012345678": "887654321098765432",
+    },
 
     logChannels: {
         actions: '',
@@ -47,10 +45,13 @@ export const config: BotConfig = {
         onlyMilestones: false,
     },
     xpSystem: {
-        enabled: true,          // must be true or none of this runs
+        enabled: true,
+        autoRankup: true,
+        resetXpOnFire: false,
         messageXp: 1,
-        messageCooldown: 60,    // seconds
+        messageCooldown: 60,
         messageXpIgnoredChannels: [],
+        roles: [],
     },
     antiAbuse: {
         enabled: true,
@@ -59,9 +60,10 @@ export const config: BotConfig = {
         demotionRank: 1,
     },
     activity: {
-        enabled: true,
+        enabled: false,
         type: ActivityType.Watching,
         value: 'for commands.',
     },
     status: 'online',
+    deleteWallURLs: false,
 }
