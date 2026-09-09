@@ -25,7 +25,12 @@ export const config: BotConfig = {
         "737823381218525184": "1252782745848123482", // guildId : boosterRoleId
         "223456789012345678": "887654321098765432",
     },
-
+    
+    inGameRanking: {
+        enabled: true,
+        rankCeiling: 30,      // <-- set to your E9 rank NUMBER (not the name)
+        minOfficerRank: 20,   // <-- lowest rank allowed to rank in-game
+    },
     accountLinks: {
         provider: 'rowifi',
         guildId: '',
