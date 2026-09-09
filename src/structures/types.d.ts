@@ -6,6 +6,22 @@ import {
 
 export interface BotConfig {
     /**
+     * In-game ranking (Adonis :promote / :demote) safety limits. These are
+     * enforced by the bot, so they hold even if the game's API key leaks.
+     */
+    inGameRanking?: {
+        enabled: boolean;
+        /**
+         * No in-game action may promote anyone TO this rank or higher, and
+         * nobody at or above it can be targeted. Set to your officer floor.
+         */
+        rankCeiling: number;
+        /**
+         * The lowest rank an officer must hold to use in-game ranking at all.
+         */
+        minOfficerRank: number;
+    };
+    /**
      * Title on every DM the bot sends.
      */
     notificationTitle?: string;
