@@ -6,18 +6,16 @@ import { config } from '../config';
  * now Discord's "server identity" / primary guild), and removes it when they
  * stop.
  *
- * NOTE: primary_guild is undocumented. discord.js may surface it as
- * member.user.primaryGuild, or only in the raw payload depending on the exact
- * build, so this reads defensively from several possible shapes. If it never
- * fires, that's the field not being populated — see readIdentityGuildId.
+ * primary_guild is undocumented; discord.js may surface it as
+ * member.user.primaryGuild or only in the raw payload, so this reads
+ * defensively from several shapes.
  */
 
 const readIdentityGuildId = (member: GuildMember | PartialGuildMember): string | null => {
     const user: any = member.user;
     if(!user) return null;
 
-    // Preferred: discord.js typed accessor.
-    const pg = user.primaryGuild || user.clan; // clan = older name, just in case
+    const pg = user.primaryGuild || user.clan;
     if(pg) {
         const enabled = pg.identityEnabled ?? pg.identity_enabled;
         const gid = pg.identityGuildId ?? pg.identity_guild_id;
@@ -25,7 +23,6 @@ const readIdentityGuildId = (member: GuildMember | PartialGuildMember): string |
         return null;
     }
 
-    // Fallback: raw payload stashed on the user object.
     const raw = user._primaryGuild || user.primary_guild;
     if(raw && (raw.identity_enabled ?? raw.identityEnabled)) {
         const gid = raw.identity_guild_id ?? raw.identityGuildId;
@@ -38,16 +35,29 @@ const sync = async (member: GuildMember | PartialGuildMember) => {
     const cfg = config.serverTagRole;
     if(!cfg?.enabled || !cfg.guildId || !cfg.roleId) return;
     if(member.guild.id !== cfg.guildId) return;
+    if(member.user?.bot) return; // never touch bots
 
     let full: GuildMember;
     try {
         full = member.partial ? await member.fetch() : member as GuildMember;
     } catch {
-        return;
+        return; // member left, or fetch failed - do nothing
+    }
+
+    // If the role was deleted or the bot can't manage it, bail quietly rather
+    // than error-looping on every profile update in the server.
+    const role = full.guild.roles.cache.get(cfg.roleId);
+    if(!role) return;
+    const me = full.guild.members.me;
+    if(!me || !me.permissions.has('ManageRoles') || role.position >= me.roles.highest.position) {
+        return; // can't manage this role; silently skip
     }
 
     const displayingTag = readIdentityGuildId(full) === cfg.guildId;
     const hasRole = full.roles.cache.has(cfg.roleId);
+
+    // Nothing to do - avoids a pointless API call on every unrelated update.
+    if(displayingTag === hasRole) return;
 
     try {
         if(displayingTag && !hasRole) {
