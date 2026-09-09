@@ -35,13 +35,13 @@ export const config: BotConfig = {
     serverTagRole: {
         enabled: true,
         guildId: '737823381218525184',
-        roleId: '',   // <-- make the role, give it image perms, paste its ID
+        roleId: '1547012962106081340',   // <-- make the role, give it image perms, paste its ID
     },
     
     accountLinks: {
         provider: 'rowifi',
         guildId: '',
-        useDenylist: false,
+        useDenylist: true,
     },
 
     quota: {
@@ -55,7 +55,7 @@ export const config: BotConfig = {
         actions: '',
         shout: '',
     },
-    api: false,
+    api: true,
     maximumRank: 255,
     verificationChecks: {
         enabled: false,
