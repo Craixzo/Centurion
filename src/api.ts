@@ -175,6 +175,66 @@ if(config.api) {
         }
     });
 
+
+    // In-game ranking (Adonis). Unlike /promote, this checks WHO is asking and
+    // enforces a rank ceiling the game key cannot exceed even if it leaks.
+    app.post('/ingame-rank', async (req, res) => {
+        if(!config.inGameRanking?.enabled) return res.send({ success: false, msg: 'In-game ranking is disabled.' });
+
+        const robloxGroup = await groupFromRequest(req);
+        const { actorId, targetId, direction } = req.body;
+        if(!actorId || !targetId || !direction) return res.send({ success: false, msg: 'Missing parameters.' });
+
+        const ceiling = config.inGameRanking.rankCeiling;
+        const minOfficer = config.inGameRanking.minOfficerRank;
+
+        try {
+            const actor = await robloxGroup.getMember(Number(actorId));
+            const target = await robloxGroup.getMember(Number(targetId));
+            if(!actor || !target) return res.send({ success: false, msg: 'Actor or target is not in the group.' });
+
+            // The officer must actually be an officer.
+            if(actor.role.rank < minOfficer) {
+                return res.send({ success: false, msg: 'You are not permitted to rank in-game.' });
+            }
+            // The hard ceiling: nobody already at or above it can be touched.
+            if(target.role.rank >= ceiling) {
+                return res.send({ success: false, msg: 'That person is at or above the rank ceiling.' });
+            }
+            // An officer cannot touch anyone already at or above their own rank.
+            if(target.role.rank >= actor.role.rank) {
+                return res.send({ success: false, msg: 'You cannot rank someone at or above your own rank.' });
+            }
+
+            const groupRoles = await robloxGroup.getRoles();
+            const currentIndex = groupRoles.findIndex((role) => role.rank === target.role.rank);
+            const nextRole = direction === 'promote'
+                ? groupRoles[currentIndex + 1]
+                : groupRoles[currentIndex - 1];
+            if(!nextRole) return res.send({ success: false, msg: 'No rank in that direction.' });
+
+            // A promotion may not LAND at or above the ceiling, nor at/above the officer.
+            if(direction === 'promote' && nextRole.rank >= ceiling) {
+                return res.send({ success: false, msg: 'That promotion would exceed the rank ceiling.' });
+            }
+            if(direction === 'promote' && nextRole.rank >= actor.role.rank) {
+                return res.send({ success: false, msg: 'That promotion would reach your own rank.' });
+            }
+
+            await robloxGroup.updateMember(Number(targetId), nextRole.id);
+            logAction(
+                direction === 'promote' ? 'Promote' : 'Demote',
+                `In-Game (${actor.name})`,
+                null, target,
+                `${target.role.name} (${target.role.rank}) → ${nextRole.name} (${nextRole.rank})`,
+            );
+            return res.send({ success: true, msg: `${target.name} is now ${nextRole.name}.` });
+        } catch (err) {
+            console.error('[ingame-rank]', err);
+            return res.send({ success: false, msg: 'Failed to rank.' });
+        }
+    });
+
     app.post('/setrank', async (req, res) => {
         const robloxGroup = await groupFromRequest(req);
         const { id, role } = req.body;
