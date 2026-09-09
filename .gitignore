@@ -3,3 +3,5 @@ node_modules
 dist
 src/database/qbotdata.db
 src/resources/commands.json
+
+qbotdata.db
