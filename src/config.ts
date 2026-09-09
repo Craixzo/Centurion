@@ -31,6 +31,13 @@ export const config: BotConfig = {
         rankCeiling: 30,      // <-- set to your E9 rank NUMBER (not the name)
         minOfficerRank: 20,   // <-- lowest rank allowed to rank in-game
     },
+
+    serverTagRole: {
+        enabled: true,
+        guildId: '737823381218525184',
+        roleId: '',   // <-- make the role, give it image perms, paste its ID
+    },
+    
     accountLinks: {
         provider: 'rowifi',
         guildId: '',
