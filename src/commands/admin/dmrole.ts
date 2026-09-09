@@ -4,7 +4,7 @@ import { Command } from '../../structures/Command';
 import { config } from '../../config';
 import { logAction } from '../../handlers/handleLogging';
 import { getUnexpectedErrorEmbed, getDmRoleResultEmbed } from '../../handlers/locale';
-import { sendMassDm, MAX_RECIPIENTS } from '../../handlers/massDm';
+import { sendMassDm, formatUserMessage, MAX_RECIPIENTS } from '../../handlers/massDm';
 
 class DMRoleCommand extends Command {
     constructor() {
@@ -47,7 +47,7 @@ class DMRoleCommand extends Command {
         const roleId = typeof ctx.args['role'] === 'string'
             ? ctx.args['role']
             : (ctx.args['role'] as Role)?.id;
-        const message = ctx.args['message'] as string;
+        const message = formatUserMessage(ctx.args['message'] as string);
         const dryRun = Boolean(ctx.args['dry-run']);
 
         if(!ctx.guild) return ctx.reply({ content: 'This command only works inside a server.' });
@@ -57,10 +57,13 @@ class DMRoleCommand extends Command {
 
         try {
             // Needs the Server Members Intent, which QbotClient already requests.
-            const members = await ctx.guild.members.fetch();
-            const recipients = [ ... members.values() ].filter(
-                (member: GuildMember) => !member.user.bot && member.roles.cache.has(roleId),
-            );
+            // Members are fetched once at startup (see main.ts), so this reads
+            // from cache with no API call - avoids the gateway rate limit that
+            // fetching all members per-command hits on large servers.
+            const role = ctx.guild.roles.cache.get(roleId) || await ctx.guild.roles.fetch(roleId);
+            const recipients = role
+                ? [ ... role.members.values() ].filter((member: GuildMember) => !member.user.bot)
+                : [];
 
             if(recipients.length === 0) {
                 return ctx.reply({ embeds: [ await getDmRoleResultEmbed({
