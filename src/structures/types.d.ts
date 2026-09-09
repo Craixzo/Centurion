@@ -6,6 +6,21 @@ import {
 
 export interface BotConfig {
     /**
+     * Grant a role to anyone displaying this server's tag (server identity /
+     * primary guild). The role holds the actual permissions, e.g. attach files.
+     */
+    serverTagRole?: {
+        enabled: boolean;
+        /**
+         * The server whose tag is checked, and where the role is granted.
+         */
+        guildId: string;
+        /**
+         * Role given to members displaying the tag. Make it, then paste its ID.
+         */
+        roleId: string;
+    };
+    /**
      * In-game ranking (Adonis :promote / :demote) safety limits. These are
      * enforced by the bot, so they hold even if the game's API key leaks.
      */
