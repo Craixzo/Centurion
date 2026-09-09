@@ -207,28 +207,44 @@ if(config.api) {
             }
 
             const groupRoles = await robloxGroup.getRoles();
-            const currentIndex = groupRoles.findIndex((role) => role.rank === target.role.rank);
-            const nextRole = direction === 'promote'
-                ? groupRoles[currentIndex + 1]
-                : groupRoles[currentIndex - 1];
-            if(!nextRole) return res.send({ success: false, msg: 'No rank in that direction.' });
 
-            // A promotion may not LAND at or above the ceiling, nor at/above the officer.
-            if(direction === 'promote' && nextRole.rank >= ceiling) {
-                return res.send({ success: false, msg: 'That promotion would exceed the rank ceiling.' });
-            }
-            if(direction === 'promote' && nextRole.rank >= actor.role.rank) {
-                return res.send({ success: false, msg: 'That promotion would reach your own rank.' });
+            // XP actions: add or remove, no rank change, so only the actor and
+            // target-below-you checks above apply. XP is global.
+            if(direction === 'addxp' || direction === 'removexp') {
+                const amount = Math.abs(Number(req.body.amount) || 0);
+                if(amount <= 0) return res.send({ success: false, msg: 'Amount must be a positive number.' });
+
+                const delta = direction === 'addxp' ? amount : -amount;
+                const newXp = await provider.addXp(String(targetId), delta);
+                logAction(direction === 'addxp' ? 'Add XP' : 'Remove XP', `In-Game (${actor.name})`, null, target, `${direction === 'addxp' ? '+' : '-'}${amount} XP (now ${Math.max(newXp, 0)})`);
+                return res.send({ success: true, msg: `${target.name} now has ${Math.max(newXp, 0)} XP.` });
             }
 
-            await robloxGroup.updateMember(Number(targetId), nextRole.id);
-            logAction(
-                direction === 'promote' ? 'Promote' : 'Demote',
-                `In-Game (${actor.name})`,
-                null, target,
-                `${target.role.name} (${target.role.rank}) → ${nextRole.name} (${nextRole.rank})`,
-            );
-            return res.send({ success: true, msg: `${target.name} is now ${nextRole.name}.` });
+            // Rank actions.
+            let newRole;
+            if(direction === 'setrank') {
+                const wanted = req.body.role;
+                newRole = groupRoles.find((r) => Number(wanted) === r.rank || Number(wanted) === r.id || String(wanted).toLowerCase() === r.name.toLowerCase());
+                if(!newRole) return res.send({ success: false, msg: 'No rank by that name or number.' });
+            } else {
+                const currentIndex = groupRoles.findIndex((role) => role.rank === target.role.rank);
+                newRole = direction === 'promote' ? groupRoles[currentIndex + 1] : groupRoles[currentIndex - 1];
+                if(!newRole) return res.send({ success: false, msg: 'No rank in that direction.' });
+            }
+
+            // The resulting rank must stay below both the ceiling and the officer.
+            // This is what makes :setrank safe - you cannot jump someone to E9.
+            if(newRole.rank >= ceiling) {
+                return res.send({ success: false, msg: 'That rank is at or above the ceiling.' });
+            }
+            if(newRole.rank >= actor.role.rank) {
+                return res.send({ success: false, msg: 'That rank is at or above your own.' });
+            }
+
+            await robloxGroup.updateMember(Number(targetId), newRole.id);
+            const label = direction === 'setrank' ? 'Set Rank' : (direction === 'promote' ? 'Promote' : 'Demote');
+            logAction(label, `In-Game (${actor.name})`, null, target, `${target.role.name} (${target.role.rank}) → ${newRole.name} (${newRole.rank})`);
+            return res.send({ success: true, msg: `${target.name} is now ${newRole.name}.` });
         } catch (err) {
             console.error('[ingame-rank]', err);
             return res.send({ success: false, msg: 'Failed to rank.' });
