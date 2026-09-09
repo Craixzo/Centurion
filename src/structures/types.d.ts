@@ -6,13 +6,48 @@ import {
 
 export interface BotConfig {
     /**
+     * Grant a role to anyone displaying this server's tag (server identity /
+     * primary guild). The role holds the actual permissions, e.g. attach files.
+     */
+    serverTagRole?: {
+        enabled: boolean;
+        /**
+         * The server whose tag is checked, and where the role is granted.
+         */
+        guildId: string;
+        /**
+         * Role given to members displaying the tag. Make it, then paste its ID.
+         */
+        roleId: string;
+    };
+    /**
+     * In-game ranking (Adonis :promote / :demote) safety limits. These are
+     * enforced by the bot, so they hold even if the game's API key leaks.
+     */
+    inGameRanking?: {
+        enabled: boolean;
+        /**
+         * No in-game action may promote anyone TO this rank or higher, and
+         * nobody at or above it can be targeted. Set to your officer floor.
+         */
+        rankCeiling: number;
+        /**
+         * The lowest rank an officer must hold to use in-game ranking at all.
+         */
+        minOfficerRank: number;
+    };
+    /**
      * Title on every DM the bot sends.
      */
     notificationTitle?: string;
     /**
-     * Optional thumbnail on those DMs, e.g. your group logo.
+     * Optional icon beside that name, e.g. your group logo.
      */
     notificationIconUrl?: string;
+    /**
+     * Footer on every DM. Set to an empty string to omit it.
+     */
+    notificationFooter?: string;
     /**
      * IANA timezone used to interpret event times like "8pm".
      * e.g. 'America/New_York'. Defaults to UTC.

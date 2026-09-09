@@ -6,6 +6,22 @@ export const MAX_RECIPIENTS = 500; // stops a mistake blasting the whole server
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * Slash command text fields don't accept Enter, so line breaks and indents
+ * have to be typed as escape sequences and converted here.
+ *
+ *   \n  new line
+ *   \t  indent (three em spaces - Discord collapses ordinary leading spaces)
+ *
+ * Also accepts a literal "|" as a line break, which is quicker to type.
+ */
+export const formatUserMessage = (raw: string): string => {
+    return (raw || '')
+        .replace(/\\n/g, '\n')
+        .replace(/\s*\|\s*/g, '\n')
+        .replace(/\\t/g, '\u2003\u2003\u2003');
+}
+
 export interface MassDmResult {
     sent: number;
     failed: string[];
@@ -35,9 +51,10 @@ export const sendMassDm = async (
         try {
             await recipient.send({ embeds: [ embed ] });
             sent += 1;
-        } catch (err) {
+        } catch (err: any) {
             // Closed DMs, blocked the bot, or no mutual server.
             const user = 'user' in recipient ? recipient.user : recipient;
+            console.error(`[massDm] failed for ${user.tag || user.username}:`, err?.code, err?.message);
             failed.push(user.tag || user.username);
         }
         await sleep(DM_DELAY_MS);

@@ -18,18 +18,47 @@ export const config: BotConfig = {
         admin: ['1440292084547321877'],
     },
 
+    timezone: 'America/New_York',
+
+    eventTypes: [
+        { name: 'Training', value: 'Training' },
+        { name: 'Raid', value: 'Raid' },
+        { name: 'Patrol', value: 'Patrol' },
+        { name: 'Tryout', value: 'Tryout' },
+    ],
+    
+    eventChannels: [],
+
+    eventReminders: {
+        enabled: true,
+        minutesBefore: 5,
+    },
+    
     notificationTitle: 'NOTIFICATION FROM YELLONIA',
     notificationIconUrl: 'https://cdn.discordapp.com/attachments/741315255975804998/1547016815480275074/71wmb9j.png?ex=6aa1e32e&is=6aa091ae&hm=cb13cd547ddb088648c5b636e59c39d61500e43d632a049de0e2533441909c49&',
+    notificationFooter: 'THIS IS RARELY USED. DO NOT EXPECT ANY SPAM FROM THIS BOT.',
     
     boosterRoles: {
         "737823381218525184": "1252782745848123482", // guildId : boosterRoleId
         "223456789012345678": "887654321098765432",
     },
+    
+    inGameRanking: {
+        enabled: true,
+        rankCeiling: 30,      // <-- set to your E9 rank NUMBER (not the name)
+        minOfficerRank: 20,   // <-- lowest rank allowed to rank in-game
+    },
 
+    serverTagRole: {
+        enabled: true,
+        guildId: '737823381218525184',
+        roleId: '1547012962106081340',   // <-- make the role, give it image perms, paste its ID
+    },
+    
     accountLinks: {
         provider: 'rowifi',
         guildId: '',
-        useDenylist: false,
+        useDenylist: true,
     },
 
     quota: {
@@ -43,7 +72,7 @@ export const config: BotConfig = {
         actions: '',
         shout: '',
     },
-    api: false,
+    api: true,
     maximumRank: 255,
     verificationChecks: {
         enabled: false,

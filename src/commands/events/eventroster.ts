@@ -56,7 +56,7 @@ class EventRosterCommand extends Command {
             let noResponse: string[] = [];
             if(roleId && ctx.guild) {
                 const responded = new Set([ ... attending, ... declined ]);
-                const members = await ctx.guild.members.fetch();
+                const members = ctx.guild.members.cache;
                 noResponse = [ ... members.values() ]
                     .filter((member: GuildMember) => !member.user.bot
                         && member.roles.cache.has(roleId)

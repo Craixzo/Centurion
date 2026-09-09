@@ -33,7 +33,7 @@ class QuotasCommand extends Command {
 
             // One query for the whole guild, then match against role holders.
             const counts = await provider.countEventsByAllHosts(ctx.guild.id, weekStart);
-            const members = await ctx.guild.members.fetch();
+            const members = ctx.guild.members.cache;
 
             // Anyone whose leave touched this week is listed separately rather
             // than counted as short — visible, but not silently forgiven.

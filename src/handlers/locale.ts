@@ -964,12 +964,19 @@ export const getEventBadChannelEmbed = (): EmbedBuilder => {
  * notification from someone impersonating the bot in their DMs.
  */
 export const getNotificationEmbed = (body: string, heading?: string): EmbedBuilder => {
+    const name = config.notificationTitle || 'NOTIFICATION FROM YELLONIA';
+
     const embed = new EmbedBuilder()
-        .setTitle(config.notificationTitle || 'NOTIFICATION FROM YELLONIA')
+        .setAuthor(config.notificationIconUrl
+            ? { name, iconURL: config.notificationIconUrl }
+            : { name })
         .setColor(mainColor)
         .setDescription(heading ? `**${heading}**\n\n${body}` : body)
         .setTimestamp();
 
-    if(config.notificationIconUrl) embed.setThumbnail(config.notificationIconUrl);
+    const footer = config.notificationFooter
+        ?? 'THIS IS RARELY USED. DO NOT EXPECT ANY SPAM FROM THIS BOT.';
+    if(footer) embed.setFooter({ text: footer });
+
     return embed;
 }
