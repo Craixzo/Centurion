@@ -86,7 +86,7 @@ export const config: BotConfig = {
         actions: '',
         shout: '',
     },
-    api: false,
+    api: true,
     maximumRank: 255,
     verificationChecks: {
         enabled: false,
@@ -126,9 +126,9 @@ export const config: BotConfig = {
         demotionRank: 1,
     },
     activity: {
-        enabled: false,
+        enabled: true,
         type: ActivityType.Watching,
-        value: 'for commands.',
+        value: 'over Yellonia',
     },
     status: 'online',
     deleteWallURLs: false,
