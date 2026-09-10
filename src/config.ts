@@ -2,7 +2,7 @@ import { ActivityType } from 'discord.js';
 import { BotConfig } from './structures/types'; 
 
 export const config: BotConfig = {
-    groupId: 5801322,
+    groupId: 0,
     slashCommands: true,
     legacyCommands: {
         enabled: true,
@@ -10,12 +10,33 @@ export const config: BotConfig = {
     },
     permissions: {
         all: ['1440292084547321877'],
-        ranking: ['1056133660954337280'],
-        users: ['1056133660954337280'],
+        ranking: [''],
+        users: [''],
         shout: [''],
         join: [''],
         signal: [''],
         admin: ['1440292084547321877'],
+    },
+    
+    boosterRoles: {
+        "737823381218525184": "1252782745848123482", // guildId : boosterRoleId
+        "223456789012345678": "887654321098765432",
+    },
+
+    notificationTitle: 'NOTIFICATION FROM YELLONIA',
+    notificationIconUrl: '',
+    notificationFooter: 'THIS IS RARELY USED. DO NOT EXPECT ANY SPAM FROM THIS BOT.',
+
+    serverTagRole: {
+        enabled: true,
+        guildId: '737823381218525184',
+        roleId: '',   // <-- make the role, give it image perms, paste its ID
+    },
+
+    inGameRanking: {
+        enabled: true,
+        rankCeiling: 30,      // <-- set to your E9 rank NUMBER (not the name)
+        minOfficerRank: 20,   // <-- lowest rank allowed to rank in-game
     },
 
     timezone: 'America/New_York',
@@ -26,39 +47,23 @@ export const config: BotConfig = {
         { name: 'Patrol', value: 'Patrol' },
         { name: 'Tryout', value: 'Tryout' },
     ],
-    
+
     eventChannels: [],
 
     eventReminders: {
         enabled: true,
         minutesBefore: 5,
     },
-    
-    notificationTitle: 'NOTIFICATION FROM YELLONIA',
-    notificationIconUrl: 'https://cdn.discordapp.com/attachments/741315255975804998/1547016815480275074/71wmb9j.png?ex=6aa1e32e&is=6aa091ae&hm=cb13cd547ddb088648c5b636e59c39d61500e43d632a049de0e2533441909c49&',
-    notificationFooter: 'THIS IS RARELY USED. DO NOT EXPECT ANY SPAM FROM THIS BOT.',
-    
-    boosterRoles: {
-        "737823381218525184": "1252782745848123482", // guildId : boosterRoleId
-        "223456789012345678": "887654321098765432",
-    },
-    
-    inGameRanking: {
-        enabled: true,
-        rankCeiling: 30,      // <-- set to your E9 rank NUMBER (not the name)
-        minOfficerRank: 20,   // <-- lowest rank allowed to rank in-game
-    },
 
-    serverTagRole: {
-        enabled: true,
-        guildId: '737823381218525184',
-        roleId: '1547012962106081340',   // <-- make the role, give it image perms, paste its ID
-    },
-    
     accountLinks: {
         provider: 'rowifi',
         guildId: '',
         useDenylist: true,
+    },
+
+    loa: {
+        minDays: 2,
+        maxDays: 30,
     },
 
     quota: {
@@ -72,7 +77,7 @@ export const config: BotConfig = {
         actions: '',
         shout: '',
     },
-    api: true,
+    api: false,
     maximumRank: 255,
     verificationChecks: {
         enabled: false,
@@ -84,8 +89,12 @@ export const config: BotConfig = {
     recordManualActions: true,
     secondaryGroups: [
         { name: 'Military', id: 6157380 },
-        
     ],
+
+    // Group 6157380 is owned by a different account, so it uses its own key.
+    groupApiKeys: {
+        '6157380': 'ROBLOX_API_KEY_MILITARY',
+    },
     memberCount: {
         enabled: false,
         channelId: '',
@@ -93,7 +102,7 @@ export const config: BotConfig = {
         onlyMilestones: false,
     },
     xpSystem: {
-        enabled: false,
+        enabled: true,
         autoRankup: true,
         resetXpOnFire: false,
         messageXp: 1,
@@ -108,9 +117,9 @@ export const config: BotConfig = {
         demotionRank: 1,
     },
     activity: {
-        enabled: true,
+        enabled: false,
         type: ActivityType.Watching,
-        value: 'Watching over Yellonia.',
+        value: 'for commands.',
     },
     status: 'online',
     deleteWallURLs: false,
