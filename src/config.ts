@@ -2,7 +2,7 @@ import { ActivityType } from 'discord.js';
 import { BotConfig } from './structures/types'; 
 
 export const config: BotConfig = {
-    groupId: 0,
+    groupId: 5801322,
     slashCommands: true,
     legacyCommands: {
         enabled: true,
@@ -10,10 +10,10 @@ export const config: BotConfig = {
     },
     permissions: {
         all: ['1440292084547321877'],
-        ranking: [''],
-        users: [''],
+        ranking: ['1056133660954337280'],
+        users: ['1056133660954337280'],
         shout: [''],
-        join: [''],
+        join: ['1056133660954337280'],
         signal: [''],
         admin: ['1440292084547321877'],
     },
