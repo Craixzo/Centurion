@@ -2,7 +2,7 @@ import { discordClient, robloxClient } from '../../main';
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
 import { checkDenylist } from '../../handlers/denylist';
-import { resolveGroup } from '../../handlers/groupResolver';
+import { resolveXpGroup } from '../../handlers/groupResolver';
 import {
     getInvalidRobloxUserEmbed,
     getRobloxUserIsNotMemberEmbed,
@@ -59,7 +59,7 @@ class AddXPCommand extends Command {
     }
 
     async run(ctx: CommandContext) {
-        const robloxGroup = await resolveGroup(ctx.guild?.id);
+        const robloxGroup = await resolveXpGroup(ctx.guild?.id);
         let enoughForRankUp: boolean;
         let robloxUser: User | PartialUser;
         try {
