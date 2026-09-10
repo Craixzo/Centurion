@@ -9,7 +9,7 @@ import { textSync } from 'figlet';
 
 export const checkIconUrl = 'https://cdn.lengolabs.com/qbot-icons/check.png';
 export const xmarkIconUrl = 'https://cdn.lengolabs.com/qbot-icons/xmark.png';
-export const infoIconUrl = 'https://cdn.lengolabs.com/qbot-icons/info.png';
+export const infoIconUrl = 'https://cdn.discordapp.com/attachments/741315255975804998/1547360080339533965/h58s276.png?ex=6aa4745f&is=6aa322df&hm=5f26a9ade29a427b65cf45eb0ef8e7d797e51213e51a1e75052a54a577458208&';
 export const quoteIconUrl = 'https://cdn.lengolabs.com/qbot-icons/quote.png';
 
 export const mainColor = '#BED231';
@@ -22,8 +22,8 @@ export const consoleYellow = '\x1b[33m';
 export const consoleRed = '\x1b[31m';
 export const consoleClear = '\x1b[0m';
 
-export const qbotLaunchTextDisplay = `${consoleMagenta}${textSync('Qbot')}`;
-export const welcomeText = `${consoleYellow}Hey, thanks for using Qbot! If you run into any issues, please do not hesitate to join our support server: https://lengolabs.com/discord`;
+export const qbotLaunchTextDisplay = `${consoleMagenta}${textSync('Centurion')}`;
+export const welcomeText = `${consoleYellow}Fork of Adonis and Qbot. Ave Yellonia`;
 export const startedText = `\n${consoleGreen}✓  ${consoleClear}Your bot has been started.`;
 export const securityText = `\n${consoleRed}⚠  ${consoleClear}URGENT: For security reasons, public bot must be DISABLED for the bot to start. For more information, please refer to this section of our documentation: https://docs.lengolabs.com/qbot/setup/replit-guide#discord`;
 
