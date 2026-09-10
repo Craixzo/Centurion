@@ -106,6 +106,7 @@ export const config: BotConfig = {
     xpSystem: {
         enabled: true,
         autoRankup: true,
+        groupId: 6157380,
         resetXpOnFire: false,
         messageXp: 1,
         messageCooldown: 60,
