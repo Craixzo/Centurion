@@ -14,7 +14,7 @@ import { findEligibleRole } from './handlers/handleXpRankup';
  */
 const groupFromRequest = async (req: any) => {
     const requested = req.body?.groupId || req.query?.groupId;
-    const groupId = requested ? Number(requested) : getGroupIdForGuild(null);
+    const groupId = requested ? Number(requested) : ((config as any).xpSystem?.groupId || getGroupIdForGuild(null));
     if(!groupId) throw new Error('No group configured.');
     return robloxClient.getGroup(groupId);
 }
