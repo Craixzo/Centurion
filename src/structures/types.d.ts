@@ -6,17 +6,6 @@ import {
 
 export interface BotConfig {
     /**
-     * Moderation commands (ban, kick, mute, warn) and cross-platform sync.
-     */
-    moderation?: {
-        /**
-         * Per-action default for whether the action also affects Roblox.
-         * Only ban and kick have a Roblox effect. An officer can override
-         * per use with the sync argument.
-         */
-        syncDefaults?: { ban?: boolean; kick?: boolean };
-    };
-    /**
      * Per-group Open Cloud keys, for groups owned by a different account than
      * the one whose key is in ROBLOX_API_KEY. Maps a group ID to the NAME of
      * the .env variable holding that group's key. Groups not listed use
