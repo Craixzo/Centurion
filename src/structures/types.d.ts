@@ -6,6 +6,15 @@ import {
 
 export interface BotConfig {
     /**
+     * Per-group Open Cloud keys, for groups owned by a different account than
+     * the one whose key is in ROBLOX_API_KEY. Maps a group ID to the NAME of
+     * the .env variable holding that group's key. Groups not listed use
+     * ROBLOX_API_KEY.
+     *
+     * Example: { '6157380': 'ROBLOX_API_KEY_MILITARY' }
+     */
+    groupApiKeys?: Record<string, string>;
+    /**
      * Grant a role to anyone displaying this server's tag (server identity /
      * primary guild). The role holds the actual permissions, e.g. attach files.
      */
