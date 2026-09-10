@@ -82,3 +82,14 @@ export const getGroupLabel = (groupId: number): string => {
     const secondary = (config.secondaryGroups || []).find((group) => group.id === groupId);
     return secondary ? secondary.name : String(groupId);
 }
+
+/**
+ * The group XP progression acts on. Uses config.xpSystem.groupId if set,
+ * otherwise falls back to the guild's group / default. XP balances are global;
+ * this only controls which group's ranks a rankup moves someone through.
+ */
+export const resolveXpGroup = async (guildId?: string | null) => {
+    const override = (config as any).xpSystem?.groupId;
+    if(override) return robloxClient.getGroup(Number(override));
+    return resolveGroup(guildId);
+}
