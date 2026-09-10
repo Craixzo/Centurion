@@ -1,3 +1,4 @@
+import { config } from '../config';
 /**
  * Low-level transport for the Roblox APIs qbot uses.
  *
@@ -40,6 +41,35 @@ const parse = async (res: Response, url: string): Promise<any> => {
     }
 }
 
+
+/**
+ * Picks the Open Cloud key for a request.
+ *
+ * The military group is owned by a different account, so its ranking must use
+ * that account's key, not the main one. config.groupApiKeys maps a group ID to
+ * the NAME of the env var holding its key; anything not listed uses the default
+ * ROBLOX_API_KEY. The group ID is read from the request path, so callers do not
+ * change.
+ */
+const keyForPath = (path: string): string => {
+    const match = path.match(/\/groups\/(\d+)/);
+    const groupId = match ? match[1] : null;
+
+    if(groupId) {
+        const map = (config as any).groupApiKeys as Record<string, string> | undefined;
+        const envName = map?.[groupId];
+        if(envName) {
+            const key = process.env[envName];
+            if(key) return key;
+            throw new Error(`Group ${groupId} is mapped to ${envName} but that env var is not set.`);
+        }
+    }
+
+    const fallback = process.env.ROBLOX_API_KEY;
+    if(!fallback) throw new Error('ROBLOX_API_KEY is not set in the .env file.');
+    return fallback;
+}
+
 /**
  * Open Cloud request. `path` is relative to apis.roblox.com.
  */
@@ -48,8 +78,7 @@ export const openCloud = async (
     path: string,
     options: { query?: Record<string, string | number | undefined>; body?: any } = {},
 ): Promise<any> => {
-    const apiKey = process.env.ROBLOX_API_KEY;
-    if(!apiKey) throw new Error('ROBLOX_API_KEY is not set in the .env file.');
+    const apiKey = keyForPath(path);
 
     const url = new URL(path, OPEN_CLOUD_BASE);
     if(options.query) {
