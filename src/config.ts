@@ -35,8 +35,8 @@ export const config: BotConfig = {
 
     inGameRanking: {
         enabled: true,
-        rankCeiling: 30,      // <-- set to your E9 rank NUMBER (not the name)
-        minOfficerRank: 20,   // <-- lowest rank allowed to rank in-game
+        rankCeiling: 9,      // <-- set to your E9 rank NUMBER (not the name)
+        minOfficerRank: 1,   // <-- lowest rank allowed to rank in-game
     },
 
     timezone: 'America/New_York',
@@ -95,7 +95,7 @@ export const config: BotConfig = {
 
     // Group 6157380 is owned by a different account, so it uses its own key.
     groupApiKeys: {
-        '6157380': 'ROBLOX_API_KEY_MILITARY',
+        '6157380': 'D5jTJQN6J0+ZSA0mLxa8Tni6uR4U0FUJRwypFl+8HIoqfdw1ZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNkluTnBaeTB5TURJeExUQTNMVEV6VkRFNE9qVXhPalE1V2lJc0luUjVjQ0k2SWtwWFZDSjkuZXlKaGRXUWlPaUpTYjJKc2IzaEpiblJsY201aGJDSXNJbWx6Y3lJNklrTnNiM1ZrUVhWMGFHVnVkR2xqWVhScGIyNVRaWEoyYVdObElpd2lZbUZ6WlVGd2FVdGxlU0k2SWtRMWFsUktVVTQyU2pBcldsTkJNRzFNZUdFNFZHNXBOblZTTkZVd1JsVktVbmQ1Y0Vac0t6aElTVzl4Wm1SM01TSXNJbTkzYm1WeVNXUWlPaUl6TXpnek5qYzJOamt6SWl3aVpYaHdJam94TnpnNU1ERTJNRFU0TENKcFlYUWlPakUzT0Rrd01USTBOVGdzSW01aVppSTZNVGM0T1RBeE1qUTFPSDAuS3d3ck02NTVJY1pvc09NdnVvQjduRzc5YllVQjhRcnVuZnRqT2RhOTZMNkJfNlJMUVRFNmQzYkJsekppR0poc2QzRWQ1Zko4YVFVSzFfOVI3OVk4V0tqdHRpV290S0RKbWpha2VJTS1DOURCZGFqUjRVTDdITElpT20xN19TcXVtU0cyRlpiUmRsRVpSNlRiS252MkZoMU1oRlF5NDBuQVVkeXJmRUJ6ekNxUGNWdThpY1hHYl9EOFFIMl91SjJpUXB0cmpLdWlEc0ZfckFPdW5MTTI0YUZQSDRWWlZILXhwWXVaaGx4RGJOdy1xb1I3YjVXam50d0hVQkx1TkZFSDBVaV9fWVBCUVFSMGd3OGRTUDNzY3k4VGpuNDRKODY2X3RUc0RET21RZDBIS3ZydlVTd2ZVMlpaTzYxOXFRUWZLY01ReVM5Tnpack8zbHlTdTF4cWp3',
     },
     memberCount: {
         enabled: false,
