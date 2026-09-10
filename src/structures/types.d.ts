@@ -6,6 +6,17 @@ import {
 
 export interface BotConfig {
     /**
+     * Moderation commands (ban, kick, mute, warn) and cross-platform sync.
+     */
+    moderation?: {
+        /**
+         * Per-action default for whether the action also affects Roblox.
+         * Only ban and kick have a Roblox effect. An officer can override
+         * per use with the sync argument.
+         */
+        syncDefaults?: { ban?: boolean; kick?: boolean };
+    };
+    /**
      * Per-group Open Cloud keys, for groups owned by a different account than
      * the one whose key is in ROBLOX_API_KEY. Maps a group ID to the NAME of
      * the .env variable holding that group's key. Groups not listed use
@@ -325,6 +336,12 @@ export interface BotConfig {
          * Should users be ranked up if they meet requirements after their XP is changed through commands?
          */
         autoRankup: boolean;
+        /**
+         * The group XP rankups happen in. If unset, uses the guild's group /
+         * the default. Set this to run XP progression in a specific group
+         * (e.g. the military group) regardless of where the command is run.
+         */
+        groupId?: number;
         /**
          * Wipe a user's XP when they are fired or exiled. XP is global, so
          * this clears it in every group, not just the one they were fired
