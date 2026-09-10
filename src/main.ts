@@ -14,6 +14,7 @@ import registerBoosterEvents from './events/boost';
 import registerMessageXp from './events/messageXp';
 import registerEventReminders from './events/eventReminders';
 import registerServerTag from './events/serverTag';
+import registerQuotaStrikes from './events/quotaStrikes';
 import { registerEventReactions } from './handlers/events';
 require('dotenv').config();
 
@@ -50,6 +51,7 @@ if(config.boosterRoles && Object.keys(config.boosterRoles).length > 0) registerB
 registerMessageXp(discordClient);
 registerEventReminders(discordClient);
 registerServerTag(discordClient);
+registerQuotaStrikes(discordClient);
 registerEventReactions(discordClient);
 
 discordClient.on('interactionCreate', handleInteraction as any);
