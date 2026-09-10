@@ -220,18 +220,6 @@ class PrismaProvider extends DatabaseProvider {
         return this.db.quotaStrike.findMany({ where: { guildId, groupId } });
     }
 
-    async addModLog(data: any) {
-        return this.db.modLog.create({ data });
-    }
-
-    async getModHistory(guildId: string, targetId: string) {
-        return this.db.modLog.findMany({
-            where: { guildId, targetId },
-            orderBy: { createdAt: 'desc' },
-            take: 25,
-        });
-    }
-
     async closeEvent(id: string) {
         await this.db.event.update({ where: { id }, data: { closed: true } });
     }
