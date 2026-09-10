@@ -82,7 +82,10 @@ export const config: BotConfig = {
     firedRank: 1,
     suspendedRank: 1,
     recordManualActions: true,
-    secondaryGroups: [],
+    secondaryGroups: [
+        { name: 'Military', id: 6157380 },
+        
+    ],
     memberCount: {
         enabled: false,
         channelId: '',
