@@ -111,7 +111,16 @@ export const config: BotConfig = {
         messageXp: 1,
         messageCooldown: 60,
         messageXpIgnoredChannels: [],
-        roles: [],
+        roles: [
+            { rank: 2, xp: 1000 },
+            { rank: 3, xp: 2000 },
+            { rank: 4, xp: 4000 },
+            { rank: 5, xp: 5000 },
+            { rank: 6, xp: 6000 },
+            { rank: 7, xp: 8000 },
+            { rank: 8, xp: 10000 },
+            { rank: 9, xp: 12000 },
+        ],
     },
     antiAbuse: {
         enabled: true,
