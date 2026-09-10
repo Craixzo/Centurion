@@ -202,6 +202,36 @@ class PrismaProvider extends DatabaseProvider {
         await this.db.loa.update({ where: { id }, data: { endedAt: new Date() } });
     }
 
+    async getQuotaStrike(guildId: string, groupId: string, discordId: string) {
+        return this.db.quotaStrike.findUnique({
+            where: { guildId_groupId_discordId: { guildId, groupId, discordId } },
+        });
+    }
+
+    async setQuotaStrikes(guildId: string, groupId: string, discordId: string, strikes: number, weekKey: string, fired = false) {
+        await this.db.quotaStrike.upsert({
+            where: { guildId_groupId_discordId: { guildId, groupId, discordId } },
+            update: { strikes, lastCheckedAt: weekKey, fired },
+            create: { guildId, groupId, discordId, strikes, lastCheckedAt: weekKey, fired },
+        });
+    }
+
+    async getAllStrikes(guildId: string, groupId: string) {
+        return this.db.quotaStrike.findMany({ where: { guildId, groupId } });
+    }
+
+    async addModLog(data: any) {
+        return this.db.modLog.create({ data });
+    }
+
+    async getModHistory(guildId: string, targetId: string) {
+        return this.db.modLog.findMany({
+            where: { guildId, targetId },
+            orderBy: { createdAt: 'desc' },
+            take: 25,
+        });
+    }
+
     async closeEvent(id: string) {
         await this.db.event.update({ where: { id }, data: { closed: true } });
     }
