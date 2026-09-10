@@ -9,7 +9,7 @@ import { textSync } from 'figlet';
 
 export const checkIconUrl = 'https://cdn.lengolabs.com/qbot-icons/check.png';
 export const xmarkIconUrl = 'https://cdn.lengolabs.com/qbot-icons/xmark.png';
-export const infoIconUrl = 'https://cdn.discordapp.com/attachments/741315255975804998/1547360080339533965/h58s276.png?ex=6aa322df&is=6aa1d15f&hm=f4f4764046061560c91526033ca8175c229d3fe837edb098ea2be1a601200e67&';
+export const infoIconUrl = 'https://cdn.lengolabs.com/qbot-icons/info.png';
 export const quoteIconUrl = 'https://cdn.lengolabs.com/qbot-icons/quote.png';
 
 export const mainColor = '#BED231';
@@ -22,8 +22,8 @@ export const consoleYellow = '\x1b[33m';
 export const consoleRed = '\x1b[31m';
 export const consoleClear = '\x1b[0m';
 
-export const qbotLaunchTextDisplay = `${consoleMagenta}${textSync('Centurion')}`;
-export const welcomeText = `${consoleYellow}Fork of Adonis and Qbot. Ave Yellonia.`;
+export const qbotLaunchTextDisplay = `${consoleMagenta}${textSync('Qbot')}`;
+export const welcomeText = `${consoleYellow}Hey, thanks for using Qbot! If you run into any issues, please do not hesitate to join our support server: https://lengolabs.com/discord`;
 export const startedText = `\n${consoleGreen}✓  ${consoleClear}Your bot has been started.`;
 export const securityText = `\n${consoleRed}⚠  ${consoleClear}URGENT: For security reasons, public bot must be DISABLED for the bot to start. For more information, please refer to this section of our documentation: https://docs.lengolabs.com/qbot/setup/replit-guide#discord`;
 
@@ -963,15 +963,32 @@ export const getEventBadChannelEmbed = (): EmbedBuilder => {
  * Every DM the bot sends is wrapped in this, so members can tell an official
  * notification from someone impersonating the bot in their DMs.
  */
+/**
+ * Slash command arguments cannot contain real newlines - pressing Enter submits
+ * the command - so escape sequences typed as text are converted here.
+ *
+ *   \n   line break
+ *   \n\n  blank line between paragraphs
+ *   \t   indent (non-breaking spaces, since Discord collapses leading spaces)
+ *   \-   bullet point
+ */
+export const formatDmBody = (text: string): string => {
+    return (text || '')
+        .replace(/\\n/g, '\n')
+        .replace(/\\t/g, '\u00a0\u00a0\u00a0\u00a0')
+        .replace(/\\-/g, '\u2022');
+}
+
 export const getNotificationEmbed = (body: string, heading?: string): EmbedBuilder => {
     const name = config.notificationTitle || 'NOTIFICATION FROM YELLONIA';
+    const text = formatDmBody(body);
 
     const embed = new EmbedBuilder()
         .setAuthor(config.notificationIconUrl
             ? { name, iconURL: config.notificationIconUrl }
             : { name })
         .setColor(mainColor)
-        .setDescription(heading ? `**${heading}**\n\n${body}` : body)
+        .setDescription(heading ? `**${heading}**\n\n${text}` : text)
         .setTimestamp();
 
     const footer = config.notificationFooter
@@ -979,4 +996,54 @@ export const getNotificationEmbed = (body: string, heading?: string): EmbedBuild
     if(footer) embed.setFooter({ text: footer });
 
     return embed;
+}
+
+const modActionColor = (action: string): any => {
+    if(action === 'Warned' || action === 'Muted' || action === 'Note Added') return mainColor;
+    return redColor;
+}
+
+export const getModActionEmbed = (action: string, targetId: string, modId: string, reason: string, result?: { syncedToRoblox: boolean; syncNote?: string }): EmbedBuilder => {
+    const embed = new EmbedBuilder()
+        .setAuthor({ name: action, iconURL: infoIconUrl })
+        .setColor(modActionColor(action))
+        .setDescription(`**Member:** <@${targetId}>\n**Moderator:** <@${modId}>\n**Reason:** ${reason}`)
+        .setTimestamp();
+
+    if(result?.syncedToRoblox) embed.addFields({ name: 'Roblox', value: 'Action synced to the group.', inline: false });
+    else if(result?.syncNote) embed.addFields({ name: 'Roblox', value: result.syncNote, inline: false });
+
+    return embed;
+}
+
+export const getMuteBadDurationEmbed = (): EmbedBuilder => {
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Invalid Duration', iconURL: xmarkIconUrl })
+        .setColor(redColor)
+        .setDescription('Use a duration like `10m`, `1h`, or `1d`. Maximum 28 days.');
+}
+
+export const getModHistoryEmbed = async (targetId: string, history: any[]): Promise<EmbedBuilder> => {
+    if(history.length === 0) {
+        return new EmbedBuilder()
+            .setAuthor({ name: 'Moderation History', iconURL: infoIconUrl })
+            .setColor(mainColor)
+            .setDescription(`<@${targetId}> has a clean record.`);
+    }
+
+    const icons: any = { ban: '\ud83d\udd28', kick: '\ud83d\udc62', mute: '\ud83d\udd07', warn: '\u26a0\ufe0f', note: '\ud83d\udcdd' };
+    const lines = history.map((h) => {
+        const when = `<t:${Math.floor(new Date(h.createdAt).getTime() / 1000)}:R>`;
+        const icon = icons[h.action] || '\u2022';
+        const sync = h.synced ? ' (synced)' : '';
+        return `${icon} **${h.action}**${sync} ${when}\n   ${h.reason || 'No reason'} \u2014 by <@${h.moderatorId}>`;
+    });
+
+    let body = lines.join('\n\n');
+    if(body.length > 4000) body = body.slice(0, 3990) + '\n\n…';
+
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Moderation History', iconURL: infoIconUrl })
+        .setColor(mainColor)
+        .setDescription(`<@${targetId}> \u2014 ${history.length} record${history.length === 1 ? '' : 's'}\n\n${body}`);
 }
