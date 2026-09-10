@@ -1,7 +1,7 @@
 import { discordClient, robloxClient } from '../../main';
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
-import { resolveGroup } from '../../handlers/groupResolver';
+import { resolveXpGroup } from '../../handlers/groupResolver';
 import {
     getInvalidRobloxUserEmbed,
     getRobloxUserIsNotMemberEmbed,
@@ -55,7 +55,7 @@ class RemoveXPCommand extends Command {
     }
 
     async run(ctx: CommandContext) {
-        const robloxGroup = await resolveGroup(ctx.guild?.id);
+        const robloxGroup = await resolveXpGroup(ctx.guild?.id);
         let robloxUser: User | PartialUser;
         try {
             robloxUser = await robloxClient.getUser(ctx.args['roblox-user'] as number);
