@@ -161,7 +161,7 @@ export const config: BotConfig = {
     activity: {
         enabled: true,
         type: ActivityType.Watching,
-        value: 'over Yellonia',
+        value: 'Watching over Yellonia',
     },
     status: 'online',
     deleteWallURLs: false,
