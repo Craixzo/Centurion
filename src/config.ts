@@ -66,11 +66,20 @@ export const config: BotConfig = {
         maxDays: 30,
     },
 
+    moderation: {
+        syncDefaults: {
+            ban: true,    // a Discord ban also group-bans on Roblox by default
+            kick: false,  // a Discord kick does NOT remove from the group by default
+        },
+    },
+
     quota: {
         enabled: false,
         roleIds: [],
         perWeek: 1,
         weekStartsOn: 1,
+        strikeLimit: 3,
+        requireConfirmation: false,
     },
 
     logChannels: {
