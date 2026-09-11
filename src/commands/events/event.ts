@@ -59,7 +59,7 @@ class EventCommand extends Command {
         {
             trigger: 'game',
             description: 'Link to the Roblox game or private server.',
-            required: false,
+            required: true,
             type: 'String',
         },
         {
@@ -67,6 +67,12 @@ class EventCommand extends Command {
             description: 'Any extra information for attendees.',
             required: false,
             type: 'String',
+        },
+        {
+            trigger: 'ping',
+            description: 'Role to ping when announcing the event.',
+            required: true,
+            type: 'DiscordRole',
         },
         {
             trigger: 'channel',
@@ -93,6 +99,8 @@ class EventCommand extends Command {
         const title = ctx.args['title'] as string;
         const details = (ctx.args['details'] as string) || null;
         const gameLink = (ctx.args['game'] as string) || null;
+        const pingRole = ctx.args['ping'] as string | null;
+        const pingText = pingRole ? `<@&${pingRole}>` : '';
 
         const startsAt = parseEventTime(ctx.args['starts'] as string);
         if(!startsAt) return ctx.reply({ embeds: [ getEventBadTimeEmbed() ] });
@@ -114,8 +122,11 @@ class EventCommand extends Command {
             }
 
             // Post first so we have a message ID, then attach the reactions.
-            const draft = { title, details, type: eventType, gameLink, startsAt, closed: false };
-            const message = await channel.send({ embeds: [ await buildEventEmbed(draft, []) ] });
+            const draft = { title, details, type: eventType, gameLink, startsAt, closed: false, hostId: ctx.user.id };
+            const message = await channel.send({
+                   content: pingText || undefined,
+                    embeds: [ await buildEventEmbed(draft, []) ]
+            });
 
             const event = await provider.createEvent({
                 guildId: ctx.guild.id,
