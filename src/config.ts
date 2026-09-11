@@ -89,7 +89,7 @@ export const config: BotConfig = {
         { name: 'Milsim Training', value: 'Milsim Training', description: 'Title must be used to specify what area of milsim training this is about.' },
         { name: 'Milsim Class', value: 'Milsim Class', description: 'Title must be used to specify what area of milsim class this is about.' },
      ],
-    fun [
+    fun: [
         { name: 'Practice Raid', value: 'Practice Raid', description: 'Practice Raid.' },
         { name: 'Game Night/Day', value: 'Game Night/Day', description: 'Playing a fun game of sorts.' },
         { name: 'Game Raid', value: 'Game Raid', description: 'Raid a game with a bunch of people.' },
