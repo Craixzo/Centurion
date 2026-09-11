@@ -105,7 +105,9 @@ export const config: BotConfig = {
     ],
     },
 
-    eventChannels: [],
+    eventChannels: [
+        { name: 'Main Server: Events Schedule', id: '991806768604795000' },
+    ],
 
     eventReminders: {
         enabled: true,
@@ -133,7 +135,7 @@ export const config: BotConfig = {
     },
 
     logChannels: {
-        actions: '',
+        actions: '866781121139441684',
         shout: '',
     },
     api: true,
