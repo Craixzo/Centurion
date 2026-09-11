@@ -10,6 +10,7 @@ import { handleRobloxUser } from '../arguments/handleRobloxUser';
 import { handleRobloxRole } from '../arguments/handleRobloxRole';
 import { handleSecondaryGroup } from '../arguments/handleSecondaryGroup';
 import { getUnknownCommandMessage, getNoPermissionEmbed } from '../handlers/locale';
+import { handleEventType } from '../arguments/handleEventType';
 
 const handleInteraction = async (payload: Interaction<CacheType>) => {
     if(payload instanceof CommandInteraction) {
@@ -38,6 +39,7 @@ const handleInteraction = async (payload: Interaction<CacheType>) => {
         if(focusedArg.type === 'RobloxUser') handleRobloxUser(interaction, focusedOption);
         if(focusedArg.type === 'RobloxRole') await handleRobloxRole(interaction, focusedOption);
         if(focusedArg.type === 'SecondaryGroup') await handleSecondaryGroup(interaction, focusedOption);
+        if(focusedArg.trigger === 'type' && interaction.commandName === 'event') await handleEventType(interaction, focusedOption);
 
     }
 }
