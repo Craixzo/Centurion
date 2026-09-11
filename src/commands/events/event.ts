@@ -47,12 +47,6 @@ class EventCommand extends Command {
             autocomplete: true,
         },
         {
-            trigger: 'title',
-            description: 'What is the event called?',
-            required: false,
-            type: 'String',
-        },
-        {
             trigger: 'starts',
             description: 'When? e.g. 8pm, 20:00, 2026-09-12 20:00, in 2h',
             required: true,
@@ -62,6 +56,12 @@ class EventCommand extends Command {
             trigger: 'game',
             description: 'Link to the Roblox game or private server.',
             required: true,
+            type: 'String',
+        },
+        {
+            trigger: 'title',
+            description: 'What is the event called?',
+            required: false,
             type: 'String',
         },
         {
