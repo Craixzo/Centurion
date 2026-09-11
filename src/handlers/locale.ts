@@ -10,7 +10,7 @@ import { textSync } from 'figlet';
 export const checkIconUrl = 'https://cdn.lengolabs.com/qbot-icons/check.png';
 export const xmarkIconUrl = 'https://cdn.lengolabs.com/qbot-icons/xmark.png';
 export const infoIconUrl = 'https://cdn.discordapp.com/attachments/741315255975804998/1547360080339533965/h58s276.png?ex=6aa4745f&is=6aa322df&hm=5f26a9ade29a427b65cf45eb0ef8e7d797e51213e51a1e75052a54a577458208&';
-export const quoteIconUrl = 'https://cdn.lengolabs.com/qbot-icons/quote.png';
+export const quoteIconUrl = 'https://cdn.discordapp.com/attachments/741315255975804998/1547774859189293230/k7rkd69.png?ex=6aa4a52a&is=6aa353aa&hm=7af69e107e443964166478be8f2e32899894e1b825c6ffbd07554b684ffb868f&';
 
 export const mainColor = '#BED231';
 export const greenColor = '#50C790';
