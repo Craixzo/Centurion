@@ -1,11 +1,10 @@
-import { AutocompleteInteraction, APIApplicationCommandOptionChoice } from 'discord.js';
+import { AutocompleteInteraction } from 'discord.js';
 import { config } from '../config';
 
 const handleEventType = async (
     interaction: AutocompleteInteraction,
     option: { name: string; value: string }
 ) => {
-    // Get the category they selected
     const category = interaction.options.getString('category');
 
     if (!category || !config.eventTypes[category]) {
@@ -15,16 +14,19 @@ const handleEventType = async (
     const events = config.eventTypes[category];
     const search = option.value.toLowerCase();
 
-    // Filter based on what they're typing
-    const filtered = events
-        .filter((e) => e.name.toLowerCase().includes(search))
-        .slice(0, 25) // Discord max
+    // If nothing typed, show all. Otherwise filter.
+    const matches = search
+        ? events.filter((e) => e.name.toLowerCase().includes(search))
+        : events;
+
+    const results = matches
+        .slice(0, 25)
         .map((e) => ({
-            name: e.description ? `${e.name}` : e.name,
+            name: e.name,
             value: e.value,
         }));
 
-    return interaction.respond(filtered);
+    return interaction.respond(results);
 };
 
 export { handleEventType };
