@@ -59,6 +59,12 @@ class EventCommand extends Command {
             type: 'String',
         },
         {
+            trigger: 'ping',
+            description: 'Role to ping when announcing the event.',
+            required: true,
+            type: 'DiscordRole',
+        },
+        {
             trigger: 'title',
             description: 'What is the event called?',
             required: false,
@@ -69,12 +75,6 @@ class EventCommand extends Command {
             description: 'Any extra information for attendees.',
             required: false,
             type: 'String',
-        },
-        {
-            trigger: 'ping',
-            description: 'Role to ping when announcing the event.',
-            required: true,
-            type: 'DiscordRole',
         },
         {
             trigger: 'channel',
