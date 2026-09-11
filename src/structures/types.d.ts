@@ -76,7 +76,7 @@ export interface BotConfig {
     /**
      * Kinds of event officers can run. Shown as a dropdown on /event.
      */
-    eventTypes?: { name: string; value: string }[];
+    eventTypes?: Record<string, { name: string; value: string; description?: string }[]>;
     /**
      * Channels events may be announced in. Shown as a dropdown on /event.
      * Leave empty to allow the channel the command was run in.
