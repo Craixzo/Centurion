@@ -127,7 +127,9 @@ export const config: BotConfig = {
 
     quota: {
         enabled: false,
-        roleIds: [],
+        roleIds: [
+            '1056133660954337280',
+        ],
         perWeek: 1,
         weekStartsOn: 1,
         strikeLimit: 3,
