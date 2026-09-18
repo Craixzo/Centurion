@@ -3,16 +3,11 @@
   "version": "8.0.0",
   "description": "The most advanced Discord to Roblox ranking bot available, open source and free, without any branding.",
   "main": "src/main.ts",
-  "prisma": {
-  "schema": "src/database/schema.prisma"
-  },
   "scripts": {
     "start": "ts-node src/main.ts",
-    "build": "tsc --outDir dist",
     "dev": "nodemon src/main.ts --ignore ./src/resources/commands.json",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "resetSlashCmds": "echo [] > src/resources/commands.json",
-    "update": "git fetch && git reset --hard origin/master && git pull"
+    "resetSlashCmds": "echo [] > src/resources/commands.json"
   },
   "author": "LengoLabs",
   "license": "MIT",
@@ -39,5 +34,8 @@
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "prisma": {
+    "schema": "src/database/schema.prisma"
   }
 }
