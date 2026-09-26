@@ -37,15 +37,12 @@ const runForGuild = async (client: Client, guildId: string, groupId: number) => 
     // Only run once per week: if everyone's already been checked for this week, stop.
     // (Cheap gate; per-officer lastCheckedAt is the real idempotency.)
 
-    const counts = await provider.countEventsByAllHosts(guildId, lastWeekStart);
-    // countEventsByAllHosts counts from lastWeekStart onward, which includes this
-    // week too - subtract nothing; we only care whether they hit quota in the
-    // completed week, and the per-host figure below is filtered to that window.
-
-    // Outage guard: nobody in the whole guild hosted anything. Skip.
-    const totalHosted = Object.values(counts).reduce((a, b) => a + b, 0);
-    if(totalHosted === 0) {
-        console.warn(`[quotaStrikes] ${guildId}: zero events all week - skipping to avoid mass-striking.`);
+    // Outage guard: only skip if the data layer itself is unreachable, NOT if
+    // the count is simply zero. A zero-event week means officers didn't host and
+    // SHOULD be struck; a broken DB means we can't tell and must not strike.
+    const healthy = await provider.healthCheck();
+    if(!healthy) {
+        console.warn(`[quotaStrikes] ${guildId}: data layer unhealthy - skipping this run to avoid false strikes.`);
         return;
     }
 
