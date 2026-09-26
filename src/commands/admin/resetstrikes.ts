@@ -22,7 +22,7 @@ const dmReset = async (discordId: string) => {
     try {
         const user = await discordClient.users.fetch(discordId);
         await user.send({ embeds: [ getNotificationEmbed(
-            'IT WAS A MISINPUT MY BAD - CRAIXZO',
+            'IT WAS A MISINPUT MY CALM DOWN, YOU CALM THE FUCK DOWN. IT WAS A MISINPUT - CRAIXZO',
             'Strikes Reset',
         ) ] });
     } catch (err) { /* DMs closed */ }
