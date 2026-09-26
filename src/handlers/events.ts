@@ -1,173 +1,149 @@
-import { Client, GuildMember, TextChannel } from 'discord.js';
-import { config } from '../config';
+import { Client, EmbedBuilder, Message, MessageReaction, PartialMessageReaction, PartialUser, User } from 'discord.js';
 import { provider } from '../database';
-import { robloxClient } from '../main';
-import { getWeekStart } from '../handlers/quota';
-import { getLinkedRobloxUser } from '../handlers/accountLinks';
-import { logAction } from '../handlers/handleLogging';
-import { getNotificationEmbed } from '../handlers/locale';
+import { mainColor, greenColor, quoteIconUrl } from './locale';
+import { discordTime } from './eventTime';
+
+export const ATTEND_EMOJI = '\u2705';  // :white_check_mark:
+export const DECLINE_EMOJI = '\u274C'; // :x:
+
+/** Renders a mention list that fits Discord's 1024-char field limit. */
+const formatRoster = (ids: string[], emptyText: string): string => {
+    if(ids.length === 0) return emptyText;
+
+    const mentions: string[] = [];
+    let length = 0;
+    for(const id of ids) {
+        const mention = `<@${id}>`;
+        if(length + mention.length + 2 > 950) {
+            mentions.push(`and **${ids.length - mentions.length}** more`);
+            break;
+        }
+        mentions.push(mention);
+        length += mention.length + 2;
+    }
+    return mentions.join(', ');
+}
+
+export const buildEventEmbed = async (event: any, attendingIds: string[], declinedIds: string[] = []) => {
+    const fields: any[] = [];
+
+    // Host field
+    if(event.hostId) {
+        fields.push({
+            name: 'Host',
+            value: `<@${event.hostId}>`,
+            inline: false,
+        });
+    }
+
+    if(event.startsAt) {
+        fields.push({
+            name: 'Starts',
+            value: `${discordTime(event.startsAt)} (${discordTime(event.startsAt, 'R')})`,
+            inline: false,
+        });
+    }
+    if(event.gameLink) fields.push({ name: 'Game', value: event.gameLink, inline: false });
+
+    fields.push({
+        name: `${ATTEND_EMOJI} Attending \u2014 ${attendingIds.length}`,
+        value: formatRoster(attendingIds, '*Nobody yet.*'),
+        inline: false,
+    });
+
+    if(declinedIds.length > 0) {
+        fields.push({
+            name: `${DECLINE_EMOJI} Can't make it \u2014 ${declinedIds.length}`,
+            value: formatRoster(declinedIds, '*Nobody.*'),
+            inline: false,
+        });
+    }
+
+    return new EmbedBuilder()
+        .setAuthor({ name: event.closed ? 'Event (closed)' : 'Event Announcement', iconURL: quoteIconUrl })
+        .setTitle(event.type ? `[${event.type}] ${event.title}` : event.title)
+        .setDescription(event.details || null)
+        .setColor(event.closed ? greenColor : mainColor)
+        .addFields(fields)
+        .setFooter({ text: event.closed
+            ? 'RSVPs are closed.'
+            : `React ${ATTEND_EMOJI} to attend or ${DECLINE_EMOJI} if you can't make it.` });
+}
+
+/** Adds the two RSVP reactions to a freshly posted announcement. */
+export const seedEventReactions = async (message: Message) => {
+    await message.react(ATTEND_EMOJI);
+    await message.react(DECLINE_EMOJI);
+}
+
+const refreshAnnouncement = async (message: Message, event: any) => {
+    const all = await provider.getRsvps(event.id);
+    const attending = all.filter((r: any) => r.attending).map((r: any) => r.discordId);
+    const declined = all.filter((r: any) => !r.attending).map((r: any) => r.discordId);
+
+    try {
+        await message.edit({ embeds: [ await buildEventEmbed(event, attending, declined) ] });
+    } catch (err) { /* deleted or not editable */ }
+}
 
 /**
- * Weekly quota enforcement. Once per quota week, for the week that just ended:
- *   - officers who met quota, or were on LOA, reset to 0 strikes
- *   - officers who missed get +1 strike
- *   - at strikeLimit strikes, they are fired (set to config.firedRank)
- *
- * Fully automatic, but guarded: if NOBODY hosted anything that week, it assumes
- * a data/outage problem and skips the whole run rather than striking everyone.
- * Set quota.requireConfirmation to only flag the 3rd strike instead of firing.
+ * Reaction RSVPs.
  */
+const handleReaction = async (
+    reaction: MessageReaction | PartialMessageReaction,
+    user: User | PartialUser,
+    added: boolean,
+) => {
+    if(user.bot) return;
 
-const CHECK_INTERVAL = 60 * 60 * 1000; // hourly; the weekKey guard makes it idempotent
+    const emoji = reaction.emoji.name;
+    if(emoji !== ATTEND_EMOJI && emoji !== DECLINE_EMOJI) return;
 
-const weekKeyFor = (weekStart: Date): string => weekStart.toISOString().slice(0, 10);
+    if(reaction.partial) await reaction.fetch();
+    if(reaction.message.partial) await reaction.message.fetch();
 
-const runForGuild = async (client: Client, guildId: string, groupId: number) => {
-    const q = config.quota;
-    if(!q?.enabled || (q.roleIds || []).length === 0) return;
+    const message = reaction.message as Message;
+    const event = await provider.findEventByMessage(message.id);
+    if(!event) return;
 
-    const guild = client.guilds.cache.get(guildId);
-    if(!guild) return;
+    const attending = emoji === ATTEND_EMOJI;
 
-    // The week that just ended: this quota week's start minus one week.
-    const thisWeekStart = getWeekStart();
-    const lastWeekStart = new Date(thisWeekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const weekKey = weekKeyFor(lastWeekStart);
-
-    // Only run once per week: if everyone's already been checked for this week, stop.
-    // (Cheap gate; per-officer lastCheckedAt is the real idempotency.)
-
-    // Outage guard: only skip if the data layer itself is unreachable, NOT if
-    // the count is simply zero. A zero-event week means officers didn't host and
-    // SHOULD be struck; a broken DB means we can't tell and must not strike.
-    const healthy = await provider.healthCheck();
-    if(!healthy) {
-        console.warn(`[quotaStrikes] ${guildId}: data layer unhealthy - skipping this run to avoid false strikes.`);
+    if(event.closed) {
+        if(added) await reaction.users.remove(user.id).catch(() => {});
         return;
     }
 
-    const loas = await provider.findLoasOverlapping(guildId, lastWeekStart, thisWeekStart);
-    const onLeave = new Set(loas.map((l: any) => l.discordId));
+    if(added) {
+        await provider.setRsvp(event.id, user.id, attending);
 
-    const officers = [ ... guild.members.cache.values() ].filter((m: GuildMember) =>
-        !m.user.bot && m.roles.cache.some((r) => q.roleIds.includes(r.id)));
+        const opposite = attending ? DECLINE_EMOJI : ATTEND_EMOJI;
+        const oppositeReaction = message.reactions.cache.get(opposite);
+        if(oppositeReaction) await oppositeReaction.users.remove(user.id).catch(() => {});
+    } else {
+        const current = await provider.getRsvps(event.id);
+        const theirs = current.find((r: any) => r.discordId === user.id);
+        if(theirs && theirs.attending === attending) {
+            await provider.removeRsvp(event.id, user.id);
+        }
+    }
 
-    const logChannel = config.logChannels?.actions
-        ? guild.channels.cache.get(config.logChannels.actions) as TextChannel
-        : null;
+    await refreshAnnouncement(message, event);
+}
 
-    const fired: string[] = [];
-    const struck: { id: string; strikes: number }[] = [];
-
-    for(const officer of officers) {
+export const registerEventReactions = (client: Client) => {
+    client.on('messageReactionAdd', async (reaction, user) => {
         try {
-            const record = await provider.getQuotaStrike(guildId, String(groupId), officer.id);
-
-            // HARD idempotency: if this officer was already evaluated for this
-            // exact week, do nothing at all - no strike, no DM, no fire. This is
-            // what makes restarts safe; the job can run any number of times per
-            // week and only acts once per officer per week.
-            if(record?.lastCheckedAt === weekKey) continue;
-            if(record?.fired) continue;
-
-            const hosted = await provider.countEventsByHost(guildId, officer.id, lastWeekStart, thisWeekStart);
-            const metQuota = hosted >= q.perWeek;
-            const excused = onLeave.has(officer.id);
-
-            const currentStrikes = record?.strikes || 0;
-            const limit = q.strikeLimit ?? 3;
-
-            if(metQuota || excused) {
-                // Stamp this week as checked; reset strikes to 0. No DM.
-                await provider.setQuotaStrikes(guildId, String(groupId), officer.id, 0, weekKey);
-                continue;
-            }
-
-            const newStrikes = currentStrikes + 1;
-            const willFire = newStrikes >= limit && !q.requireConfirmation;
-
-            // Stamp FIRST (records this week as processed + the new strike count)
-            // so that even if the DM or fire below throws, this officer is never
-            // re-processed for this week on a later run.
-            await provider.setQuotaStrikes(guildId, String(groupId), officer.id, newStrikes, weekKey, willFire);
-
-            if(willFire) {
-                await fireOfficer(officer, groupId);
-                await dmOfficer(officer, newStrikes, limit, q.perWeek, true);
-                fired.push(`<@${officer.id}>`);
-            } else {
-                await dmOfficer(officer, newStrikes, limit, q.perWeek, false);
-                struck.push({ id: officer.id, strikes: newStrikes });
-            }
+            await handleReaction(reaction, user, true);
         } catch (err) {
-            console.error(`[quotaStrikes] ${guildId}/${officer.id}:`, err);
+            console.error('[event reaction add]', err);
         }
-    }
+    });
 
-    if(logChannel && (fired.length || struck.length)) {
-        const lines: string[] = [ `**Weekly quota check** (week of ${weekKey})` ];
-        for(const s of struck) {
-            const atLimit = s.strikes >= (q.strikeLimit ?? 3);
-            lines.push(`<@${s.id}> - strike ${s.strikes}/${q.strikeLimit ?? 3}${atLimit ? ' (eligible for removal)' : ''}`);
-        }
-        if(fired.length) lines.push(`\nFired for reaching the strike limit: ${fired.join(', ')}`);
-        logChannel.send({ content: lines.join('\n') }).catch(() => {});
-    }
-}
-
-
-/** DMs an officer when they take a quota strike (or are fired). Best-effort. */
-const dmOfficer = async (officer: GuildMember, strikes: number, limit: number, perWeek: number, wasFired: boolean) => {
-    try {
-        const body = wasFired
-            ? `You missed your weekly hosting quota and have reached **${strikes}/${limit}** strikes, so you have been removed from your position.\n\nIf you believe this is a mistake, contact command.`
-            : `You did not meet your weekly hosting quota. This is strike **${strikes}/${limit}**.\n\n${strikes >= limit ? 'You are now eligible for removal.' : `Host at least ${perWeek} event next week to avoid another strike. Hosting resets your strikes.`}`;
-        await officer.send({ embeds: [ getNotificationEmbed(body, wasFired ? 'Removed for Quota' : 'Quota Strike') ] });
-    } catch (err) {
-        // DMs closed - the log channel still records it.
-    }
-}
-
-const fireOfficer = async (officer: GuildMember, groupId: number) => {
-    const robloxUser = await getLinkedRobloxUser(officer.id, officer.guild.id);
-    if(!robloxUser) {
-        console.warn(`[quotaStrikes] cannot fire ${officer.id}: no linked Roblox account.`);
-        return;
-    }
-    const group = await robloxClient.getGroup(groupId);
-    const roles = await group.getRoles();
-    const firedRole = roles.find((r) => r.rank === config.firedRank);
-    if(!firedRole) return;
-
-    const member = await group.getMember(robloxUser.id);
-    if(!member || member.role.rank === config.firedRank) return;
-
-    await group.updateMember(robloxUser.id, firedRole.id);
-    logAction('Fire', 'Quota System', 'Reached weekly quota strike limit', robloxUser);
-}
-
-const registerQuotaStrikes = (client: Client) => {
-    if(!config.quota?.enabled || !config.quota?.strikeLimit) return;
-
-    const loop = async () => {
+    client.on('messageReactionRemove', async (reaction, user) => {
         try {
-            for(const [ guildId, groupId ] of Object.entries(config.guildGroups || { })) {
-                await runForGuild(client, guildId, groupId as number);
-            }
-            // Also the default group, keyed to whichever guild(s) it runs in.
-            // If guildGroups is empty, run every guild the bot is in against the default group.
-            if(!config.guildGroups || Object.keys(config.guildGroups).length === 0) {
-                for(const guild of client.guilds.cache.values()) {
-                    await runForGuild(client, guild.id, config.groupId);
-                }
-            }
+            await handleReaction(reaction, user, false);
         } catch (err) {
-            console.error('[quotaStrikes]', err);
+            console.error('[event reaction remove]', err);
         }
-        setTimeout(loop, CHECK_INTERVAL);
-    }
-    // First run a minute after startup, once members are cached.
-    setTimeout(loop, 90 * 1000);
+    });
 }
-
-export default registerQuotaStrikes;
