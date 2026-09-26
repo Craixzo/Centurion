@@ -139,8 +139,8 @@ class PrismaProvider extends DatabaseProvider {
         await this.db.eventRsvp.deleteMany({ where: { eventId, discordId } });
     }
 
-    async countEventsByHost(guildId: string, hostId: string, since: Date): Promise<number> {
-        return this.db.event.count({ where: { guildId, hostId, createdAt: { gte: since } } });
+    async countEventsByHost(guildId: string, hostId: string, since: Date, until?: Date): Promise<number> {
+        return this.db.event.count({ where: { guildId, hostId, createdAt: until ? { gte: since, lt: until } : { gte: since } } });
     }
 
     /** One pass for the whole roster, rather than a query per officer. */
