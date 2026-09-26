@@ -5,6 +5,7 @@ import { robloxClient } from '../main';
 import { getWeekStart } from '../handlers/quota';
 import { getLinkedRobloxUser } from '../handlers/accountLinks';
 import { logAction } from '../handlers/handleLogging';
+import { getNotificationEmbed } from '../handlers/locale';
 
 /**
  * Weekly quota enforcement. Once per quota week, for the week that just ended:
@@ -86,9 +87,11 @@ const runForGuild = async (client: Client, guildId: string, groupId: number) => 
             if(newStrikes >= limit && !q.requireConfirmation) {
                 await provider.setQuotaStrikes(guildId, String(groupId), officer.id, newStrikes, weekKey, true);
                 await fireOfficer(officer, groupId);
+                await dmOfficer(officer, newStrikes, limit, true);
                 fired.push(`<@${officer.id}>`);
             } else {
                 await provider.setQuotaStrikes(guildId, String(groupId), officer.id, newStrikes, weekKey);
+                await dmOfficer(officer, newStrikes, limit, false);
                 struck.push({ id: officer.id, strikes: newStrikes });
             }
         } catch (err) {
@@ -104,6 +107,19 @@ const runForGuild = async (client: Client, guildId: string, groupId: number) => 
         }
         if(fired.length) lines.push(`\nFired for reaching the strike limit: ${fired.join(', ')}`);
         logChannel.send({ content: lines.join('\n') }).catch(() => {});
+    }
+}
+
+
+/** DMs an officer when they take a quota strike (or are fired). Best-effort. */
+const dmOfficer = async (officer: GuildMember, strikes: number, limit: number, wasFired: boolean) => {
+    try {
+        const body = wasFired
+            ? `You missed your weekly hosting quota and have reached **${strikes}/${limit}** strikes, so you have been removed from your position.\n\nIf you believe this is a mistake, contact command.`
+            : `You did not meet your weekly hosting quota. This is strike **${strikes}/${limit}**.\n\n${strikes >= limit ? 'You are now eligible for removal.' : `Host at least ${q.perWeek} event next week to avoid another strike. Hosting resets your strikes.`}`;
+        await officer.send({ embeds: [ getNotificationEmbed(body, wasFired ? 'Removed for Quota' : 'Quota Strike') ] });
+    } catch (err) {
+        // DMs closed - the log channel still records it.
     }
 }
 
