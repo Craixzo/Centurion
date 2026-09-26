@@ -8,7 +8,6 @@ abstract class DatabaseProvider {
     abstract updateUser(robloxId: string, groupId: number | string, data: any): Promise<void>;
 
     // XP (global)
-    abstract findXpRecord(robloxId: string): Promise<any>;
     abstract addXp(robloxId: string, amount: number): Promise<number>;
     abstract getTopXp(limit: number): Promise<{ robloxId: string; xp: number }[]>;
     abstract getXpRank(robloxId: string): Promise<number>;
