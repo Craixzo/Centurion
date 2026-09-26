@@ -134,6 +134,7 @@ export const config: BotConfig = {
         weekStartsOn: 1,
         strikeLimit: 3,
         requireConfirmation: false,
+        notifyExemptRoleIds: [],
     },
 
     logChannels: {
