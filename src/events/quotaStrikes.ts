@@ -63,31 +63,39 @@ const runForGuild = async (client: Client, guildId: string, groupId: number) => 
         try {
             const record = await provider.getQuotaStrike(guildId, String(groupId), officer.id);
 
-            // Already processed this week? Skip - makes the hourly loop idempotent.
+            // HARD idempotency: if this officer was already evaluated for this
+            // exact week, do nothing at all - no strike, no DM, no fire. This is
+            // what makes restarts safe; the job can run any number of times per
+            // week and only acts once per officer per week.
             if(record?.lastCheckedAt === weekKey) continue;
             if(record?.fired) continue;
 
-            // Count only events hosted within the completed week window.
-            const hosted = await provider.countEventsByHost(guildId, officer.id, lastWeekStart);
+            const hosted = await provider.countEventsByHost(guildId, officer.id, lastWeekStart, thisWeekStart);
             const metQuota = hosted >= q.perWeek;
             const excused = onLeave.has(officer.id);
 
+            const currentStrikes = record?.strikes || 0;
+            const limit = q.strikeLimit ?? 3;
+
             if(metQuota || excused) {
-                if(record?.strikes) await provider.setQuotaStrikes(guildId, String(groupId), officer.id, 0, weekKey);
-                else await provider.setQuotaStrikes(guildId, String(groupId), officer.id, 0, weekKey);
+                // Stamp this week as checked; reset strikes to 0. No DM.
+                await provider.setQuotaStrikes(guildId, String(groupId), officer.id, 0, weekKey);
                 continue;
             }
 
-            const newStrikes = (record?.strikes || 0) + 1;
-            const limit = q.strikeLimit ?? 3;
+            const newStrikes = currentStrikes + 1;
+            const willFire = newStrikes >= limit && !q.requireConfirmation;
 
-            if(newStrikes >= limit && !q.requireConfirmation) {
-                await provider.setQuotaStrikes(guildId, String(groupId), officer.id, newStrikes, weekKey, true);
+            // Stamp FIRST (records this week as processed + the new strike count)
+            // so that even if the DM or fire below throws, this officer is never
+            // re-processed for this week on a later run.
+            await provider.setQuotaStrikes(guildId, String(groupId), officer.id, newStrikes, weekKey, willFire);
+
+            if(willFire) {
                 await fireOfficer(officer, groupId);
                 await dmOfficer(officer, newStrikes, limit, q.perWeek, true);
                 fired.push(`<@${officer.id}>`);
             } else {
-                await provider.setQuotaStrikes(guildId, String(groupId), officer.id, newStrikes, weekKey);
                 await dmOfficer(officer, newStrikes, limit, q.perWeek, false);
                 struck.push({ id: officer.id, strikes: newStrikes });
             }
