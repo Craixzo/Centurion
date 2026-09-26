@@ -3,6 +3,7 @@ abstract class DatabaseProvider {
     abstract findSuspendedUsers(groupId?: number | string): Promise<any[]>;
     abstract findBannedUsers(groupId?: number | string): Promise<any[]>;
     abstract updateUser(robloxId: string, groupId: number | string, data: any): Promise<void>;
+    abstract healthCheck(): Promise<boolean>;
 }
 
 export { DatabaseProvider };
