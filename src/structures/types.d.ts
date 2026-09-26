@@ -156,6 +156,11 @@ export interface BotConfig {
          */
         notifyExemptRoleIds?: string[];
         /**
+         * Master switch for quota-failure DMs. Set false while debugging so
+         * strikes still track and log but nobody gets messaged. Defaults to true.
+         */
+        sendDMs?: boolean;
+        /**
          * If true, the bot only flags the final strike as "eligible for
          * removal" instead of firing automatically. Defaults to false.
          */
