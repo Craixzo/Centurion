@@ -6,23 +6,28 @@ import { config } from '../../config';
 import { provider } from '../../database';
 import { getNotificationEmbed, getResetStrikesEmbed, getUnexpectedErrorEmbed } from '../../handlers/locale';
 import { logAction } from '../../handlers/handleLogging';
+import { getWeekStart } from '../../handlers/quota';
 
 const groupIdForGuild = (guildId: string): number => {
     const map = config.guildGroups || {};
     return (map[guildId] as number) || config.groupId;
 }
 
+// Must match the week quotaStrikes evaluates: the COMPLETED week (this week's
+// start minus 7 days). Stamping the current week would leave last week
+// un-stamped, so the next strike run would re-strike everyone. This is the bug
+// behind "I reset strikes and they come back."
 const weekKey = (): string => {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    return now.toISOString().slice(0, 10);
+    const start = getWeekStart();
+    const lastWeekStart = new Date(start.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return lastWeekStart.toISOString().slice(0, 10);
 }
 
 const dmReset = async (discordId: string) => {
     try {
         const user = await discordClient.users.fetch(discordId);
         await user.send({ embeds: [ getNotificationEmbed(
-            'IT WAS A MISINPUT MY CALM DOWN, YOU CALM THE FUCK DOWN. IT WAS A MISINPUT - CRAIXZO',
+            'Your quota strikes have been reset to zero. You are back in good standing.',
             'Strikes Reset',
         ) ] });
     } catch (err) { /* DMs closed */ }
