@@ -1047,3 +1047,20 @@ export const getModHistoryEmbed = async (targetId: string, history: any[]): Prom
         .setColor(mainColor)
         .setDescription(`<@${targetId}> \u2014 ${history.length} record${history.length === 1 ? '' : 's'}\n\n${body}`);
 }
+
+export const getResetStrikesEmbed = async (ids: string[]): Promise<EmbedBuilder> => {
+    if(ids.length === 0) {
+        return new EmbedBuilder()
+            .setAuthor({ name: 'Reset Strikes', iconURL: infoIconUrl })
+            .setColor(mainColor)
+            .setDescription('Nobody had strikes to reset.');
+    }
+    const list = ids.length <= 20
+        ? ids.map((id) => `<@${id}>`).join(', ')
+        : `${ids.slice(0, 20).map((id) => `<@${id}>`).join(', ')} and ${ids.length - 20} more`;
+    return new EmbedBuilder()
+        .setAuthor({ name: 'Reset Strikes', iconURL: checkIconUrl })
+        .setColor(greenColor)
+        .setDescription(`Reset quota strikes for **${ids.length}** officer${ids.length === 1 ? '' : 's'}.\n\n${list}`)
+        .setFooter({ text: 'They have been notified by DM.' });
+}
