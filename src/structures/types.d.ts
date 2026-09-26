@@ -150,6 +150,12 @@ export interface BotConfig {
          */
         strikeLimit?: number;
         /**
+         * Role IDs whose holders are NOT notified about quota strikes (e.g.
+         * Joint Staff). They are still tracked and still appear in /quotas;
+         * they just don't get the DM.
+         */
+        notifyExemptRoleIds?: string[];
+        /**
          * If true, the bot only flags the final strike as "eligible for
          * removal" instead of firing automatically. Defaults to false.
          */
