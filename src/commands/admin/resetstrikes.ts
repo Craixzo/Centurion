@@ -47,6 +47,12 @@ class ResetStrikesCommand extends Command {
                     required: false,
                     type: 'DiscordUser',
                 },
+                {
+                    trigger: 'silent',
+                    description: 'Reset without DMing the officer(s). Defaults to false.',
+                    required: false,
+                    type: 'Boolean',
+                },
             ],
             permissions: [
                 { type: 'role', ids: config.permissions.admin, value: true },
@@ -62,11 +68,12 @@ class ResetStrikesCommand extends Command {
             const targetId = typeof ctx.args['user'] === 'string'
                 ? ctx.args['user']
                 : (ctx.args['user'] as any)?.id;
+            const silent = Boolean(ctx.args['silent']);
 
             // Single officer
             if(targetId) {
                 await provider.setQuotaStrikes(ctx.guild.id, groupId, targetId, 0, weekKey(), false);
-                await dmReset(targetId);
+                if(!silent) await dmReset(targetId);
                 logAction('Reset Strikes' as any, ctx.user, 'Strikes reset', { id: targetId } as any);
                 return ctx.reply({ embeds: [ await getResetStrikesEmbed([ targetId ]) ] });
             }
@@ -76,7 +83,7 @@ class ResetStrikesCommand extends Command {
             const affected = all.filter((r: any) => r.strikes > 0 || r.fired);
             for(const rec of affected) {
                 await provider.setQuotaStrikes(ctx.guild.id, groupId, rec.discordId, 0, weekKey(), false);
-                await dmReset(rec.discordId);
+                if(!silent) await dmReset(rec.discordId);
             }
             logAction('Reset Strikes' as any, ctx.user, `Reset all (${affected.length} officers)`, null as any);
             return ctx.reply({ embeds: [ await getResetStrikesEmbed(affected.map((r: any) => r.discordId)) ] });
