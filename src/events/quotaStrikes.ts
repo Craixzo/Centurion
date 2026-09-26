@@ -85,6 +85,8 @@ const runForGuild = async (client: Client, guildId: string, groupId: number) => 
 
             const newStrikes = currentStrikes + 1;
             const willFire = newStrikes >= limit && !q.requireConfirmation;
+            // Joint Staff etc: tracked and struck/fired normally, just not DMed.
+            const notifyExempt = (q.notifyExemptRoleIds || []).some((r) => officer.roles.cache.has(r));
 
             // Stamp FIRST (records this week as processed + the new strike count)
             // so that even if the DM or fire below throws, this officer is never
@@ -93,10 +95,10 @@ const runForGuild = async (client: Client, guildId: string, groupId: number) => 
 
             if(willFire) {
                 await fireOfficer(officer, groupId);
-                await dmOfficer(officer, newStrikes, limit, q.perWeek, true);
+                if(!notifyExempt) await dmOfficer(officer, newStrikes, limit, q.perWeek, true);
                 fired.push(`<@${officer.id}>`);
             } else {
-                await dmOfficer(officer, newStrikes, limit, q.perWeek, false);
+                if(!notifyExempt) await dmOfficer(officer, newStrikes, limit, q.perWeek, false);
                 struck.push({ id: officer.id, strikes: newStrikes });
             }
         } catch (err) {
