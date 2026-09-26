@@ -22,7 +22,7 @@ const dmReset = async (discordId: string) => {
     try {
         const user = await discordClient.users.fetch(discordId);
         await user.send({ embeds: [ getNotificationEmbed(
-            'Your quota strikes have been reset to zero. You are back in good standing.',
+            'IT WAS A MISINPUT MY BAD - CRAIXZO',
             'Strikes Reset',
         ) ] });
     } catch (err) { /* DMs closed */ }
