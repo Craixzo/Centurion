@@ -133,7 +133,7 @@ export const config: BotConfig = {
         perWeek: 1,
         weekStartsOn: 1,
         strikeLimit: 3,
-        requireConfirmation: true,
+        requireConfirmation: false,
     },
 
     logChannels: {
