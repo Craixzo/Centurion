@@ -223,6 +223,21 @@ class PrismaProvider extends DatabaseProvider {
     async closeEvent(id: string) {
         await this.db.event.update({ where: { id }, data: { closed: true } });
     }
+
+    /**
+     * Cheap liveness probe for the data layer. Returns true if the database is
+     * reachable, false if the query throws. Distinguishes "nobody hosted"
+     * (real - strike them) from "the bot couldn't read the data" (outage - skip).
+     */
+    async healthCheck(): Promise<boolean> {
+        try {
+            await this.db.user.count();
+            return true;
+        } catch (err) {
+            console.error('[healthCheck] database unreachable:', err);
+            return false;
+        }
+    }
 }
 
 export { PrismaProvider };
