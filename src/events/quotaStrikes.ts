@@ -149,6 +149,95 @@ const fireOfficer = async (officer: GuildMember, groupId: number) => {
     logAction('Fire', 'Quota System', 'Reached weekly quota strike limit', robloxUser);
 }
 
+
+/**
+ * Global quota pass. Pools each officer's events across every server, evaluates
+ * each officer exactly once, keys strikes to the main group, fires in the main
+ * group, and logs to the main server's channel. Officer roles from all servers
+ * live in config.quota.roleIds.
+ */
+const runGlobal = async (client: Client) => {
+    const q = config.quota;
+    if(!q?.enabled || (q.roleIds || []).length === 0) return;
+
+    const healthy = await provider.healthCheck();
+    if(!healthy) {
+        console.warn('[quotaStrikes] global: data layer unhealthy - skipping.');
+        return;
+    }
+
+    const thisWeekStart = getWeekStart();
+    const lastWeekStart = new Date(thisWeekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const weekKey = weekKeyFor(lastWeekStart);
+    const groupId = config.groupId;               // strikes/firing anchor to main group
+    const limit = q.strikeLimit ?? 3;
+    const dmsOn = q.sendDMs !== false;
+
+    // Unique officers across ALL guilds (someone in two servers counts once).
+    const officers = new Map<string, GuildMember>();
+    for(const guild of client.guilds.cache.values()) {
+        for(const m of guild.members.cache.values()) {
+            if(m.user.bot) continue;
+            if(m.roles.cache.some((r) => q.roleIds.includes(r.id))) {
+                if(!officers.has(m.id)) officers.set(m.id, m);
+            }
+        }
+    }
+
+    // LOA is global too.
+    const loas = await provider.findLoasOverlappingGlobal(lastWeekStart, thisWeekStart);
+    const onLeave = new Set(loas.map((l: any) => l.discordId));
+
+    // Log to the MAIN guild's channel.
+    const mainGuild = client.guilds.cache.get(Object.keys(config.guildGroups || {})[0] || client.guilds.cache.firstKey() || '');
+    const logChannel = config.logChannels?.actions && mainGuild
+        ? mainGuild.channels.cache.get(config.logChannels.actions) as TextChannel
+        : null;
+
+    const fired: string[] = [];
+    const struck: { id: string; strikes: number }[] = [];
+
+    for(const officer of officers.values()) {
+        try {
+            const record = await provider.getQuotaStrike('global', String(groupId), officer.id);
+            if(record?.lastCheckedAt === weekKey) continue;   // already handled this week
+            if(record?.fired) continue;
+
+            const hosted = await provider.countEventsByHostGlobal(officer.id, lastWeekStart, thisWeekStart);
+            const metQuota = hosted >= q.perWeek;
+            const excused = onLeave.has(officer.id);
+            const notifyExempt = !dmsOn || (q.notifyExemptRoleIds || []).some((r) => officer.roles.cache.has(r));
+
+            if(metQuota || excused) {
+                await provider.setQuotaStrikes('global', String(groupId), officer.id, 0, weekKey);
+                continue;
+            }
+
+            const newStrikes = (record?.strikes || 0) + 1;
+            const willFire = newStrikes >= limit && !q.requireConfirmation;
+            await provider.setQuotaStrikes('global', String(groupId), officer.id, newStrikes, weekKey, willFire);
+
+            if(willFire) {
+                await fireOfficer(officer, groupId);
+                if(!notifyExempt) await dmOfficer(officer, newStrikes, limit, q.perWeek, true);
+                fired.push(`<@${officer.id}>`);
+            } else {
+                if(!notifyExempt) await dmOfficer(officer, newStrikes, limit, q.perWeek, false);
+                struck.push({ id: officer.id, strikes: newStrikes });
+            }
+        } catch (err) {
+            console.error(`[quotaStrikes] global/${officer.id}:`, err);
+        }
+    }
+
+    if(logChannel && (fired.length || struck.length)) {
+        const lines: string[] = [ `**Weekly quota check (global)** — week of ${weekKey}` ];
+        for(const st of struck) lines.push(`<@${st.id}> — strike ${st.strikes}/${limit}${st.strikes >= limit ? ' (eligible for removal)' : ''}`);
+        if(fired.length) lines.push(`\nFired: ${fired.join(', ')}`);
+        logChannel.send({ content: lines.join('\n') }).catch(() => {});
+    }
+}
+
 const registerQuotaStrikes = (client: Client) => {
     if(!config.quota?.enabled || !config.quota?.strikeLimit) return;
 
