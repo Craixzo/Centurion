@@ -107,6 +107,16 @@ export const config: BotConfig = {
 
     eventChannels: [
         { name: 'Main Server: Events Schedule', id: '991806768604795000' },
+        { name: 'Military Police: Events Schedule', id: '1474063802256326739'},
+        { name: 'Army: Events Schedule', id: '911767148161040404' },
+        { name: 'Navy: Events', id: '944806856323383396'},
+        { name: 'Air Force: Events Schedule', id: '1180922507881103420' },
+        { name: '2nd Fleet: Events', id: '935682168326357032'},
+        { name: '6th Marines: Events Schedule', id: '1113278064101707877' },
+        { name: '4th Air Combat Division: Events Schedule', id: '812802721471266818'},
+        { name: '9th Helicopter Operations Division: Events Schedule', id: '1457512799516229852'},
+        { name: '3rd Armored Division: Events', id: '940816706283135056' },
+        { name: '1st Infantry Division: Events', id: '823291036012249128'},
     ],
 
     eventReminders: {
