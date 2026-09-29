@@ -19,6 +19,7 @@ abstract class DatabaseProvider {
     abstract findRecentEvents(guildId: string, limit: number): Promise<any[]>;
     abstract closeEvent(id: string): Promise<void>;
     abstract countEventsByHost(guildId: string, hostId: string, since: Date, until?: Date): Promise<number>;
+    abstract countEventsByHostGlobal(hostId: string, since: Date, until?: Date): Promise<number>;
     abstract countEventsByAllHosts(guildId: string, since: Date): Promise<Record<string, number>>;
     abstract findEventsNeedingReminders(before: Date): Promise<any[]>;
     abstract markEventReminded(id: string, field: 'remind5Sent' | 'remindStartSent'): Promise<void>;
@@ -33,6 +34,7 @@ abstract class DatabaseProvider {
     abstract findActiveLoa(guildId: string, discordId: string): Promise<any>;
     abstract findActiveLoas(guildId: string): Promise<any[]>;
     abstract findLoasOverlapping(guildId: string, from: Date, to: Date): Promise<any[]>;
+    abstract findLoasOverlappingGlobal(from: Date, to: Date): Promise<any[]>;
     abstract endLoa(id: string): Promise<void>;
 
     // Quota strikes
