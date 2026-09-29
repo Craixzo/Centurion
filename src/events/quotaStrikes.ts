@@ -194,6 +194,24 @@ const runGlobal = async (client: Client) => {
         ? mainGuild.channels.cache.get(config.logChannels.actions) as TextChannel
         : null;
 
+    // Tracking-start guard: the first time the job ever runs, record which week
+    // that was. Never strike for a week that began before tracking started -
+    // the bot wasn't observing it, so a fresh DB / new deploy can't punish
+    // officers for weeks it never saw. This is what stops "every commit =
+    // everyone struck": an empty DB means no marker, so this week is treated as
+    // the baseline and everyone is established at 0 instead of struck.
+    const META_KEY = 'trackingStartWeek';
+    let trackingStart = await provider.getMeta(META_KEY);
+    if(!trackingStart) {
+        // First run ever (or after a wipe): set the baseline to the CURRENT week
+        // so the just-completed week is not retroactively judged.
+        trackingStart = weekKeyFor(thisWeekStart);
+        await provider.setMeta(META_KEY, trackingStart);
+    }
+    // If the completed week we'd evaluate is before tracking began, establish
+    // everyone at 0 for it and skip striking entirely.
+    const evaluatedWeekBeforeTracking = weekKey < trackingStart;
+
     const fired: string[] = [];
     const struck: { id: string; strikes: number }[] = [];
 
@@ -202,6 +220,12 @@ const runGlobal = async (client: Client) => {
             const record = await provider.getQuotaStrike('global', String(groupId), officer.id);
             if(record?.lastCheckedAt === weekKey) continue;   // already handled this week
             if(record?.fired) continue;
+
+            // Week predates tracking: establish at 0, never strike for it.
+            if(evaluatedWeekBeforeTracking) {
+                await provider.setQuotaStrikes('global', String(groupId), officer.id, 0, weekKey);
+                continue;
+            }
 
             const hosted = await provider.countEventsByHostGlobal(officer.id, lastWeekStart, thisWeekStart);
             const metQuota = hosted >= q.perWeek;
