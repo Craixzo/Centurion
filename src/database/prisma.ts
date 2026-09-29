@@ -143,6 +143,16 @@ class PrismaProvider extends DatabaseProvider {
         return this.db.event.count({ where: { guildId, hostId, createdAt: until ? { gte: since, lt: until } : { gte: since } } });
     }
 
+    /** Global: an officer's events across EVERY guild in the window. */
+    async countEventsByHostGlobal(hostId: string, since: Date, until?: Date): Promise<number> {
+        return this.db.event.count({ where: { hostId, createdAt: until ? { gte: since, lt: until } : { gte: since } } });
+    }
+
+    /** Global: any active/overlapping LOA for a user across every guild. */
+    async findLoasOverlappingGlobal(from: Date, to: Date): Promise<any[]> {
+        return this.db.loa.findMany({ where: { startsAt: { lt: to }, endsAt: { gt: from } } });
+    }
+
     /** One pass for the whole roster, rather than a query per officer. */
     async countEventsByAllHosts(guildId: string, since: Date): Promise<Record<string, number>> {
         const events = await this.db.event.findMany({
