@@ -38,6 +38,8 @@ abstract class DatabaseProvider {
     abstract endLoa(id: string): Promise<void>;
 
     // Quota strikes
+    abstract getMeta(key: string): Promise<string | null>;
+    abstract setMeta(key: string, value: string): Promise<void>;
     abstract getQuotaStrike(guildId: string, groupId: string, discordId: string): Promise<any>;
     abstract setQuotaStrikes(guildId: string, groupId: string, discordId: string, strikes: number, weekKey: string, fired?: boolean): Promise<void>;
     abstract getAllStrikes(guildId: string, groupId: string): Promise<any[]>;
