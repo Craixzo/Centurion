@@ -230,6 +230,20 @@ class PrismaProvider extends DatabaseProvider {
         return this.db.quotaStrike.findMany({ where: { guildId, groupId } });
     }
 
+    /** Every strike row that has a strike or a fired flag, regardless of key. */
+    async getAllStrikesEverywhere() {
+        return this.db.quotaStrike.findMany({ where: { OR: [ { strikes: { gt: 0 } }, { fired: true } ] } });
+    }
+
+    /** Zero out every strike row across all guilds/groups. Returns count. */
+    async resetAllStrikesEverywhere(): Promise<number> {
+        const res = await this.db.quotaStrike.updateMany({
+            where: { OR: [ { strikes: { gt: 0 } }, { fired: true } ] },
+            data: { strikes: 0, fired: false },
+        });
+        return res.count;
+    }
+
     async closeEvent(id: string) {
         await this.db.event.update({ where: { id }, data: { closed: true } });
     }
