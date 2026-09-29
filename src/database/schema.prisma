@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(uuid())
+  robloxId       String
+  groupId        String
+  suspendedUntil DateTime?
+  unsuspendRank  Int?
+  isBanned       Boolean   @default(false)
+
+  @@unique([robloxId, groupId])
+  @@index([groupId])
+}
+
+model XpRecord {
+  robloxId String @id
+  xp       Int    @default(0)
+
+  @@index([xp])
+}
+
+model Event {
+  id        String   @id @default(uuid())
+  guildId   String
+  channelId String
+  messageId String   @unique
+  title     String
+  details   String?
+  type      String?
+  gameLink  String?
+  startsAt  DateTime?
+  hostId    String
+  closed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  remind5Sent     Boolean @default(false)
+  remindStartSent Boolean @default(false)
+
+  rsvps EventRsvp[]
+
+  @@index([guildId])
+  @@index([hostId])
+  @@index([startsAt])
+}
+
+model EventRsvp {
+  id        String  @id @default(uuid())
+  eventId   String
+  discordId String
+  attending Boolean @default(true)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, discordId])
+}
+
+model Loa {
+  id        String    @id @default(uuid())
+  guildId   String
+  discordId String
+  reason    String
+  startsAt  DateTime  @default(now())
+  endsAt    DateTime
+  endedAt   DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([guildId, discordId])
+  @@index([endsAt])
+}
+
+model QuotaStrike {
+  id            String   @id @default(uuid())
+  guildId       String
+  groupId       String
+  discordId     String
+  strikes       Int      @default(0)
+  lastCheckedAt String?
+  fired         Boolean  @default(false)
+
+  @@unique([guildId, groupId, discordId])
+  @@index([guildId, groupId])
+}
