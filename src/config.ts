@@ -15,7 +15,7 @@ export const config: BotConfig = {
         shout: [''],
         join: ['1056133660954337280'],
         signal: [''],
-        admin: ['1440292084547321877', '1476543182614564986'],
+        admin: ['1440292084547321877'],
     },
     
     boosterRoles: {
