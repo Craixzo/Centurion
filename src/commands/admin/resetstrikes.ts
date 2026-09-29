@@ -62,7 +62,11 @@ class ResetStrikesCommand extends Command {
 
     async run(ctx: CommandContext) {
         if(!ctx.guild) return ctx.reply({ content: 'Server only.' });
-        const groupId = String(groupIdForGuild(ctx.guild.id));
+        // Global quota stores strikes under the fixed 'global' guild key and the
+        // main group; per-server mode uses the actual guild + its group.
+        const isGlobal = Boolean(config.quota?.global);
+        const strikeGuildKey = isGlobal ? 'global' : ctx.guild.id;
+        const groupId = String(isGlobal ? config.groupId : groupIdForGuild(ctx.guild.id));
 
         try {
             const targetId = typeof ctx.args['user'] === 'string'
@@ -72,17 +76,17 @@ class ResetStrikesCommand extends Command {
 
             // Single officer
             if(targetId) {
-                await provider.setQuotaStrikes(ctx.guild.id, groupId, targetId, 0, weekKey(), false);
+                await provider.setQuotaStrikes(strikeGuildKey, groupId, targetId, 0, weekKey(), false);
                 if(!silent) await dmReset(targetId);
                 logAction('Reset Strikes' as any, ctx.user, 'Strikes reset', { id: targetId } as any);
                 return ctx.reply({ embeds: [ await getResetStrikesEmbed([ targetId ]) ] });
             }
 
             // Everyone with a strike record in this group
-            const all = await provider.getAllStrikes(ctx.guild.id, groupId);
+            const all = await provider.getAllStrikes(strikeGuildKey, groupId);
             const affected = all.filter((r: any) => r.strikes > 0 || r.fired);
             for(const rec of affected) {
-                await provider.setQuotaStrikes(ctx.guild.id, groupId, rec.discordId, 0, weekKey(), false);
+                await provider.setQuotaStrikes(strikeGuildKey, groupId, rec.discordId, 0, weekKey(), false);
                 if(!silent) await dmReset(rec.discordId);
             }
             logAction('Reset Strikes' as any, ctx.user, `Reset all (${affected.length} officers)`, null as any);
