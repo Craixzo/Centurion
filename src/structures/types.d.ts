@@ -161,6 +161,13 @@ export interface BotConfig {
          */
         sendDMs?: boolean;
         /**
+         * Global mode: pool an officer's events across ALL servers into one
+         * quota, evaluate each officer once, fire in config.groupId, log to the
+         * main server's channel. Officer roles from every server go in roleIds.
+         * When false, quotas are tracked per-server. Defaults to false.
+         */
+        global?: boolean;
+        /**
          * If true, the bot only flags the final strike as "eligible for
          * removal" instead of firing automatically. Defaults to false.
          */
