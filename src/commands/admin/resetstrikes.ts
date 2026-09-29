@@ -53,6 +53,12 @@ class ResetStrikesCommand extends Command {
                     required: false,
                     type: 'Boolean',
                 },
+                {
+                    trigger: 'everywhere',
+                    description: 'Wipe ALL strikes regardless of how they were stored. Use if a normal reset finds nothing.',
+                    required: false,
+                    type: 'Boolean',
+                },
             ],
             permissions: [
                 { type: 'role', ids: config.permissions.admin, value: true },
@@ -80,6 +86,17 @@ class ResetStrikesCommand extends Command {
                 if(!silent) await dmReset(targetId);
                 logAction('Reset Strikes' as any, ctx.user, 'Strikes reset', { id: targetId } as any);
                 return ctx.reply({ embeds: [ await getResetStrikesEmbed([ targetId ]) ] });
+            }
+
+            // Nuclear option: wipe every strike row regardless of guild/group key.
+            // Use when a normal reset reports "nobody" but strikes clearly exist
+            // (e.g. rows written under a different key by an earlier version).
+            if(Boolean(ctx.args['everywhere'])) {
+                const rows = await provider.getAllStrikesEverywhere();
+                const count = await provider.resetAllStrikesEverywhere();
+                if(!silent) for(const r of rows) await dmReset(r.discordId);
+                logAction('Reset Strikes' as any, ctx.user, `Reset ALL keys (${count} rows)`, null as any);
+                return ctx.reply({ embeds: [ await getResetStrikesEmbed(rows.map((r: any) => r.discordId)) ] });
             }
 
             // Everyone with a strike record in this group
