@@ -212,6 +212,19 @@ class PrismaProvider extends DatabaseProvider {
         await this.db.loa.update({ where: { id }, data: { endedAt: new Date() } });
     }
 
+    /** Reserved key/value rows stored in the strike table (discordId = '__meta__'). */
+    async getMeta(key: string): Promise<string | null> {
+        const row = await this.db.quotaStrike.findFirst({ where: { guildId: '__meta__', groupId: key, discordId: '__meta__' } });
+        return row?.lastCheckedAt || null;
+    }
+    async setMeta(key: string, value: string): Promise<void> {
+        await this.db.quotaStrike.upsert({
+            where: { guildId_groupId_discordId: { guildId: '__meta__', groupId: key, discordId: '__meta__' } },
+            update: { lastCheckedAt: value },
+            create: { guildId: '__meta__', groupId: key, discordId: '__meta__', lastCheckedAt: value },
+        });
+    }
+
     async getQuotaStrike(guildId: string, groupId: string, discordId: string) {
         return this.db.quotaStrike.findUnique({
             where: { guildId_groupId_discordId: { guildId, groupId, discordId } },
