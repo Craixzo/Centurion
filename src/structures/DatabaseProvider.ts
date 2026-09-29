@@ -41,6 +41,8 @@ abstract class DatabaseProvider {
     abstract getQuotaStrike(guildId: string, groupId: string, discordId: string): Promise<any>;
     abstract setQuotaStrikes(guildId: string, groupId: string, discordId: string, strikes: number, weekKey: string, fired?: boolean): Promise<void>;
     abstract getAllStrikes(guildId: string, groupId: string): Promise<any[]>;
+    abstract getAllStrikesEverywhere(): Promise<any[]>;
+    abstract resetAllStrikesEverywhere(): Promise<number>;
 
     // Health
     abstract healthCheck(): Promise<boolean>;
