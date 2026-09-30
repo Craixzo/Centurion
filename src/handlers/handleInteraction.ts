@@ -11,6 +11,7 @@ import { handleRobloxRole } from '../arguments/handleRobloxRole';
 import { handleSecondaryGroup } from '../arguments/handleSecondaryGroup';
 import { getUnknownCommandMessage, getNoPermissionEmbed } from '../handlers/locale';
 import { handleEventType } from '../arguments/handleEventType';
+import { handleRecruitmentComponent } from './recruitment/interactions';
 
 const handleInteraction = async (payload: Interaction<CacheType>) => {
     if(payload instanceof CommandInteraction) {
@@ -41,6 +42,8 @@ const handleInteraction = async (payload: Interaction<CacheType>) => {
         if(focusedArg.type === 'SecondaryGroup') await handleSecondaryGroup(interaction, focusedOption);
         if(focusedArg.trigger === 'type' && interaction.commandName === 'event') await handleEventType(interaction, focusedOption);
 
+    } else if(payload.isMessageComponent() && payload.customId.startsWith('recruit:')) {
+        await handleRecruitmentComponent(payload);
     }
 }
 
