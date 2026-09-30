@@ -261,6 +261,69 @@ class PrismaProvider extends DatabaseProvider {
         await this.db.event.update({ where: { id }, data: { closed: true } });
     }
 
+    // --------------------------------------------------------- recruitment
+
+    /** Returns null if this person already has an active request (activeKey is unique). */
+    async createRecruitment(data: any) {
+        try {
+            return await this.db.recruitmentRequest.create({ data: { ... data, activeKey: data.discordId } });
+        } catch (err: any) {
+            if(err?.code === 'P2002') return null;
+            throw err;
+        }
+    }
+
+    async findRecruitment(id: string) {
+        return this.db.recruitmentRequest.findUnique({ where: { id } });
+    }
+
+    async findActiveRecruitmentByUser(discordId: string) {
+        return this.db.recruitmentRequest.findUnique({ where: { activeKey: discordId } });
+    }
+
+    async findRecruitmentByChannel(channelId: string) {
+        return this.db.recruitmentRequest.findFirst({ where: { channelId, activeKey: { not: null } } });
+    }
+
+    async hasAnyRecruitment(discordId: string): Promise<boolean> {
+        return (await this.db.recruitmentRequest.count({ where: { discordId } })) > 0;
+    }
+
+    async findActiveRecruitments() {
+        return this.db.recruitmentRequest.findMany({ where: { activeKey: { not: null } }, orderBy: { createdAt: 'asc' } });
+    }
+
+    async findRecruitmentsByOfficer(officerId: string) {
+        return this.db.recruitmentRequest.findMany({ where: { officerId, activeKey: { not: null } }, orderBy: { createdAt: 'asc' } });
+    }
+
+    /** Every recruitment this person has had, newest first. For /info later. */
+    async findRecruitmentHistory(discordId: string) {
+        return this.db.recruitmentRequest.findMany({ where: { discordId }, orderBy: { createdAt: 'desc' } });
+    }
+
+    async findCompletedRecruitmentsSince(since: Date) {
+        return this.db.recruitmentRequest.findMany({ where: { status: 'COMPLETED', completedAt: { gte: since } } });
+    }
+
+    async updateRecruitment(id: string, data: any) {
+        return this.db.recruitmentRequest.update({ where: { id }, data });
+    }
+
+    /**
+     * Conditional update in a single statement. Returns false if the row no
+     * longer matches (someone else changed it first). This is what makes
+     * claiming race-safe.
+     */
+    async updateRecruitmentIf(id: string, where: any, data: any): Promise<boolean> {
+        const res = await this.db.recruitmentRequest.updateMany({ where: { ... where, id }, data });
+        return res.count === 1;
+    }
+
+    async logRecruitment(requestId: string, actorId: string | null, action: string, detail?: string) {
+        await this.db.recruitmentLog.create({ data: { requestId, actorId, action, detail } });
+    }
+
     /**
      * Cheap liveness probe for the data layer. Returns true if the database is
      * reachable, false if the query throws. Distinguishes "nobody hosted"
