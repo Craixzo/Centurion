@@ -87,3 +87,56 @@ model QuotaStrike {
   @@unique([guildId, groupId, discordId])
   @@index([guildId, groupId])
 }
+/// One row per recruitment attempt. Kept forever as service history.
+/// activeKey holds the Discord ID while the request is active and is cleared
+/// once it is completed or closed, so the database itself refuses a second
+/// active request for the same person.
+model RecruitmentRequest {
+  id               String    @id @default(uuid())
+  guildId          String
+  discordId        String
+  username         String
+  displayName      String?
+  branch           String?
+  status           String    @default("PENDING_BRANCH")
+  activeKey        String?   @unique
+  officerId        String?
+  channelId        String?
+  controlMessageId String?
+  noticeChannelId  String?
+  noticeMessageId  String?
+  dmReachable      Boolean   @default(true)
+  flag             String?
+  recruitSpoke     Boolean   @default(false)
+  officerSpoke     Boolean   @default(false)
+  division         String?
+  closeReason      String?
+  claimedAt        DateTime?
+  reminderSentAt   DateTime?
+  extendedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  lastActivityAt   DateTime  @default(now())
+  completedAt      DateTime?
+  closedAt         DateTime?
+
+  logs RecruitmentLog[]
+
+  @@index([status])
+  @@index([discordId])
+  @@index([officerId])
+  @@index([channelId])
+}
+
+/// Audit trail for a recruitment request. actorId is null for system actions.
+model RecruitmentLog {
+  id        String   @id @default(uuid())
+  requestId String
+  actorId   String?
+  action    String
+  detail    String?
+  createdAt DateTime @default(now())
+
+  request RecruitmentRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+}
