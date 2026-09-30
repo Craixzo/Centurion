@@ -81,6 +81,9 @@ const refreshAnnouncement = async (message: Message, event: any) => {
     const attending = all.filter((r: any) => r.attending).map((r: any) => r.discordId);
     const declined = all.filter((r: any) => !r.attending).map((r: any) => r.discordId);
 
+    // Manually posted announcements belong to the officer, so the bot can't edit them.
+    if(message.author?.id !== message.client.user?.id) return;
+
     try {
         await message.edit({ embeds: [ await buildEventEmbed(event, attending, declined) ] });
     } catch (err) { /* deleted or not editable */ }
