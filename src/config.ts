@@ -244,4 +244,78 @@ export const config: BotConfig = {
     },
     status: 'online',
     deleteWallURLs: false,
+
+    // Fill in the IDs, then set enabled to true. Branch keys must never change.
+    recruitment: {
+        enabled: false,
+        guildId: '737823381218525184',
+        candidateRoleId: '',
+        ticketCategoryId: '',
+        dashboardChannelId: '',
+        transcriptChannelId: '',
+        leadershipRoleIds: [],
+        reminderHours: 24,
+        autoReleaseHours: 48,
+        branchSelectTimeoutHours: 48,
+        releaseOnLoa: true,
+        removeCandidateRoleOnComplete: true,
+        branches: [
+            {
+                key: 'army',
+                name: 'Yellonian Army',
+                officerRoleIds: [],
+                notifyChannelId: '',
+                roleId: '',
+                divisions: [
+                    { name: '1st Infantry Division', roleId: '' },
+                    { name: '3rd Armored Division', roleId: '' },
+                    { name: '6th Marines', roleId: '' },
+                ],
+            },
+            {
+                key: 'navy',
+                name: 'Yellonian Navy',
+                officerRoleIds: [],
+                notifyChannelId: '',
+                roleId: '',
+                divisions: [
+                    { name: '2nd Fleet', roleId: '' },
+                ],
+            },
+            {
+                key: 'airforce',
+                name: 'Yellonian Air Force',
+                officerRoleIds: [],
+                notifyChannelId: '',
+                roleId: '',
+                divisions: [
+                    { name: '4th Air Combat Division', roleId: '' },
+                    { name: '9th Helicopter Operations Division', roleId: '' },
+                ],
+            },
+            {
+                key: 'mpc',
+                name: 'Military Police Corps',
+                officerRoleIds: [],
+                notifyChannelId: '',
+                roleId: '',
+                divisions: [],
+            },
+            {
+                key: 'specwar',
+                name: 'Special Warfare',
+                officerRoleIds: [],
+                notifyChannelId: '',
+                roleId: '',
+                divisions: [],
+            },
+            {
+                key: 'general',
+                name: "I'm Not Sure",
+                general: true,
+                officerRoleIds: [],
+                notifyChannelId: '',
+            },
+        ],
+    },
 }
