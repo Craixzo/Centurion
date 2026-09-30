@@ -4,7 +4,7 @@
   "description": "The most advanced Discord to Roblox ranking bot available, open source and free, without any branding.",
   "main": "src/main.ts",
   "scripts": {
-    "start": "prisma migrate deploy && ts-node src/main.ts",
+    "start": "prisma generate && prisma migrate deploy && ts-node src/main.ts",
     "dev": "nodemon src/main.ts --ignore ./src/resources/commands.json",
     "test": "echo \"Error: no test specified\" && exit 1",
     "resetSlashCmds": "echo [] > src/resources/commands.json"
