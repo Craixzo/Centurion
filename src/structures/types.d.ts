@@ -4,7 +4,61 @@ import {
     ApplicationCommandOptionAllowedChannelTypes
 } from 'discord.js';
 
+export interface RecruitmentDivision {
+    /** Shown in the placement menu. */
+    name: string;
+    /** Role granted on placement. Optional. */
+    roleId?: string;
+}
+
+export interface RecruitmentBranch {
+    /** Stable internal key. Never change it once recruits exist. */
+    key: string;
+    /** Name shown to recruits and officers. */
+    name: string;
+    /** The "I'm Not Sure" queue. Must be changed to a real branch before completion. */
+    general?: boolean;
+    /** Roles allowed to claim this branch's recruits. */
+    officerRoleIds: string[];
+    /** Channel where new-recruit notices with the Claim button are posted. */
+    notifyChannelId: string;
+    /** Branch role granted on completion. Optional. */
+    roleId?: string;
+    /** Placement options. "Other / Undecided" is always added. */
+    divisions?: RecruitmentDivision[];
+}
+
 export interface BotConfig {
+    /**
+     * Military recruitment pipeline: DM on Military Candidate role, branch
+     * selection, officer claiming, private recruitment channels, dashboard.
+     */
+    recruitment?: {
+        enabled: boolean;
+        /** The server recruitment runs in. */
+        guildId: string;
+        /** Receiving this role starts the process. */
+        candidateRoleId: string;
+        /** Category recruitment channels are created in. */
+        ticketCategoryId: string;
+        /** Channel holding the single, self-updating dashboard message. */
+        dashboardChannelId: string;
+        /** Channel that receives transcripts and the recruitment log. */
+        transcriptChannelId: string;
+        /** Can see every recruitment channel and act on any branch. */
+        leadershipRoleIds: string[];
+        /** Hours without activity before the officer is reminded. */
+        reminderHours: number;
+        /** Hours without activity before the recruit is released. 0 disables. */
+        autoReleaseHours: number;
+        /** Hours a candidate has to pick a branch before going to the general queue. */
+        branchSelectTimeoutHours: number;
+        /** Release an officer's recruits when they go on LOA. */
+        releaseOnLoa: boolean;
+        /** Remove the Military Candidate role when recruitment is completed. */
+        removeCandidateRoleOnComplete: boolean;
+        branches: RecruitmentBranch[];
+    };
     /**
      * Moderation commands (ban, kick, mute, warn) and cross-platform sync.
      */
