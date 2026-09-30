@@ -16,6 +16,7 @@ import registerEventReminders from './events/eventReminders';
 import registerServerTag from './events/serverTag';
 import registerQuotaStrikes from './events/quotaStrikes';
 import { registerEventReactions } from './handlers/events';
+import registerRecruitment from './events/recruitment';
 require('dotenv').config();
 
 // [Ensure Setup]
@@ -53,6 +54,7 @@ registerEventReminders(discordClient);
 registerServerTag(discordClient);
 registerQuotaStrikes(discordClient);
 registerEventReactions(discordClient);
+registerRecruitment(discordClient);
 
 discordClient.on('interactionCreate', handleInteraction as any);
 discordClient.on('messageCreate', handleLegacyCommand);
