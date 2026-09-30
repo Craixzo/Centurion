@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, ActivityType, Partials, REST, Routes } from 'discord.js';
+import { Client, GatewayIntentBits, Partials, REST, Routes } from 'discord.js';
 import { BotConfig, CommandExport } from './types';
 import { Command } from './Command';
 import { config } from '../config';
@@ -6,6 +6,8 @@ import { readdirSync, writeFileSync } from 'fs';
 import { discordClient } from '../main';
 import { qbotLaunchTextDisplay, welcomeText, startedText, securityText, getListeningText } from '../handlers/locale';
 import { getLogChannels } from '../handlers/handleLogging';
+import { startPresence } from '../handlers/presence';
+import { announceUpdates } from '../handlers/updateAnnouncements';
 import 'dotenv/config';
 
 class QbotClient extends Client {
@@ -50,16 +52,13 @@ class QbotClient extends Client {
             await this.loadCommands();
             getLogChannels();
 
-            if (config.activity.enabled) {
-                this.user.setActivity(config.activity.value, {
-                    type: config.activity.type as ActivityType,
-                    url: config.activity.url,
-                });
-            }
+            startPresence(this);
 
             if (config.status !== 'online') {
                 this.user.setStatus(config.status);
             }
+
+            announceUpdates(this);
         });
     }
 
