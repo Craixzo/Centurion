@@ -46,6 +46,20 @@ abstract class DatabaseProvider {
     abstract getAllStrikesEverywhere(): Promise<any[]>;
     abstract resetAllStrikesEverywhere(): Promise<number>;
 
+    // Recruitment
+    abstract createRecruitment(data: any): Promise<any | null>;
+    abstract findRecruitment(id: string): Promise<any>;
+    abstract findActiveRecruitmentByUser(discordId: string): Promise<any>;
+    abstract findRecruitmentByChannel(channelId: string): Promise<any>;
+    abstract hasAnyRecruitment(discordId: string): Promise<boolean>;
+    abstract findActiveRecruitments(): Promise<any[]>;
+    abstract findRecruitmentsByOfficer(officerId: string): Promise<any[]>;
+    abstract findRecruitmentHistory(discordId: string): Promise<any[]>;
+    abstract findCompletedRecruitmentsSince(since: Date): Promise<any[]>;
+    abstract updateRecruitment(id: string, data: any): Promise<any>;
+    abstract updateRecruitmentIf(id: string, where: any, data: any): Promise<boolean>;
+    abstract logRecruitment(requestId: string, actorId: string | null, action: string, detail?: string): Promise<void>;
+
     // Health
     abstract healthCheck(): Promise<boolean>;
 }
