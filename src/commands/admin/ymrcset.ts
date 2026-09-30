@@ -14,20 +14,20 @@ class YmrcSetCommand extends Command {
             type: 'ChatInput',
             module: 'admin',
             args: [
-                {
-                    trigger: 'level',
-                    description: 'Which Y-MRC level to set.',
-                    required: true,
-                    type: 'Number',
-                    choices: [
-                        { name: 'Y-MRC 5 — Routine', value: 5 },
-                        { name: 'Y-MRC 4 — Elevated', value: 4 },
-                        { name: 'Y-MRC 3 — High', value: 3 },
-                        { name: 'Y-MRC 2 — Critical', value: 2 },
-                        { name: 'Y-MRC 1 — Maximum', value: 1 },
-                    ],
-                },
+              {
+                trigger: 'level',
+                description: 'Which Y-MRC level to set.',
+                required: true,
+            type: 'Number',
+            choices: [
+                { name: 'Y-MRC 5 — Routine', value: '5' },
+                { name: 'Y-MRC 4 — Elevated', value: '4' },
+                { name: 'Y-MRC 3 — High', value: '3' },
+                { name: 'Y-MRC 2 — Critical', value: '2' },
+                { name: 'Y-MRC 1 — Maximum', value: '1' },
             ],
+        },
+    ],
             permissions: [
                 { type: 'role', ids: config.permissions.admin, value: true },
             ],
