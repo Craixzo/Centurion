@@ -245,9 +245,10 @@ export const config: BotConfig = {
         value: 'over Yellonia',
         // Statuses to cycle through. Remove all entries to use the single status above.
         rotation: [
-            { type: ActivityType.Watching, value: 'over Yellonia' },
-            { type: ActivityType.Listening, value: '/event and /quota' },
-            { type: ActivityType.Competing, value: 'Yellonian military drills' },
+            { type: ActivityType.Watching, value: 'Watching over Yellonia' },
+            { type: ActivityType.Listening, value: 'Listening for commands' },
+            { type: ActivityType.Watching, value: 'Ensuring activity stays up and running' },
+            { type: ActivityType.Playing, value: 'Playing Solesia'},
         ],
         // Seconds between changes. Minimum 5.
         rotationSeconds: 10,
