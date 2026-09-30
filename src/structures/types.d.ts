@@ -493,7 +493,28 @@ export interface BotConfig {
          * If you set the type to STREAMING, where should the watch now button redirect to?
          */
         url?: string;
+        /**
+         * Optional list of statuses to cycle through. When set, it replaces
+         * type/value above. Each entry works like type/value/url.
+         */
+        rotation?: {
+            type?: ActivityType.Playing | ActivityType.Streaming | ActivityType.Listening | ActivityType.Watching | ActivityType.Competing;
+            value: string;
+            url?: string;
+        }[];
+        /**
+         * Seconds between status changes. Minimum 5 (Discord's limit is 5 changes per 20 seconds).
+         */
+        rotationSeconds?: number;
     }
+    /**
+     * Posts the newest entry in src/updates.ts to these channels once, on the
+     * first start after its version changes. Never includes repository details.
+     */
+    updateAnnouncements?: {
+        enabled: boolean;
+        channelIds: string[];
+    };
     /**
      * Configuration for the bot's status (online/idle/dnd).
      */
