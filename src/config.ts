@@ -239,8 +239,23 @@ export const config: BotConfig = {
     },
     activity: {
         enabled: true,
+        // Used when rotation is empty. The type already supplies "Watching",
+        // so the value should not repeat it.
         type: ActivityType.Watching,
-        value: 'Watching over Yellonia',
+        value: 'over Yellonia',
+        // Statuses to cycle through. Remove all entries to use the single status above.
+        rotation: [
+            { type: ActivityType.Watching, value: 'over Yellonia' },
+            { type: ActivityType.Listening, value: '/event and /quota' },
+            { type: ActivityType.Competing, value: 'Yellonian military drills' },
+        ],
+        // Seconds between changes. Minimum 5.
+        rotationSeconds: 10,
+    },
+    // Posts new entries from src/updates.ts. Add channel IDs, then set enabled to true.
+    updateAnnouncements: {
+        enabled: false,
+        channelIds: [],
     },
     status: 'online',
     deleteWallURLs: false,
