@@ -18,7 +18,7 @@ class YmrcSetCommand extends Command {
                     trigger: 'level',
                     description: 'Which Y-MRC level to set.',
                     required: true,
-                    type: 'Number',
+                    type: 'String',
                     choices: [
                         { name: 'Y-MRC 5 - Routine', value: '5' },
                         { name: 'Y-MRC 4 - Elevated', value: '4' },
