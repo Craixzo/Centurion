@@ -1064,3 +1064,18 @@ export const getResetStrikesEmbed = async (ids: string[]): Promise<EmbedBuilder>
         .setDescription(`Reset quota strikes for **${ids.length}** officer${ids.length === 1 ? '' : 's'}.\n\n${list}`)
         .setFooter({ text: 'They have been notified by DM.' });
 }
+
+export const getYmrcEmbed = (data: { level: number; name: string; image: string; points: string[] }): EmbedBuilder => {
+    return new EmbedBuilder()
+        .setColor(mainColor)
+        .setTitle(`Y-MRC LEVEL: ${data.level}`)
+        .setDescription(`**Y-MRC ${data.level}: ${data.name}**\n\n` + data.points.map((p) => `- ${p}`).join('\n'))
+        .setImage(data.image);
+}
+
+export const getYmrcSetEmbed = (data: { level: number; name: string }): EmbedBuilder => {
+    return new EmbedBuilder()
+        .setColor(greenColor)
+        .setAuthor({ name: 'Readiness Condition Updated', iconURL: checkIconUrl })
+        .setDescription(`Y-MRC is now **Level ${data.level} — ${data.name}**.`);
+}
