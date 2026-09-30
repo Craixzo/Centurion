@@ -256,7 +256,7 @@ export const config: BotConfig = {
     // Posts new entries from src/updates.ts. Add channel IDs, then set enabled to true.
     updateAnnouncements: {
         enabled: false,
-        channelIds: [],
+        channelIds: [737823381994602664],
     },
     status: 'online',
     deleteWallURLs: false,
