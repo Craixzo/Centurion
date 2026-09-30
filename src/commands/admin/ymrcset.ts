@@ -20,11 +20,11 @@ class YmrcSetCommand extends Command {
                     required: true,
                     type: 'Number',
                     choices: [
-                        { name: 'Y-MRC 5 — Routine', value: 5 },
-                        { name: 'Y-MRC 4 — Elevated', value: 4 },
-                        { name: 'Y-MRC 3 — High', value: 3 },
-                        { name: 'Y-MRC 2 — Critical', value: 2 },
-                        { name: 'Y-MRC 1 — Maximum', value: 1 },
+                        { name: 'Y-MRC 5 - Routine', value: '5' },
+                        { name: 'Y-MRC 4 - Elevated', value: '4' },
+                        { name: 'Y-MRC 3 - High', value: '3' },
+                        { name: 'Y-MRC 2 - Critical', value: '2' },
+                        { name: 'Y-MRC 1 - Maximum', value: '1' },
                     ],
                 },
             ],
@@ -36,45 +36,18 @@ class YmrcSetCommand extends Command {
 
     async run(ctx: CommandContext) {
         try {
-            console.log('[ymrc-set] Starting command');
-
             const level = Number(ctx.args['level']);
-            console.log('[ymrc-set] Level:', level);
-
-            if (!YMRC_LEVELS[level]) {
-                console.log('[ymrc-set] Invalid level');
-                return ctx.reply({ embeds: [getUnexpectedErrorEmbed()] });
-            }
-
-            console.log('[ymrc-set] Level is valid');
-
-            const data = YMRC_LEVELS[level];
-
-            console.log('[ymrc-set] Saving to database');
+            if(!YMRC_LEVELS[level]) return ctx.reply({ embeds: [ getUnexpectedErrorEmbed() ] });
 
             await provider.setMeta('ymrcLevel', String(level));
+            const data = YMRC_LEVELS[level];
+            logAction('Y-MRC Change' as any, ctx.user, `Set to Y-MRC ${level} (${data.name})`);
 
-            console.log('[ymrc-set] Database saved');
-
-            logAction(
-                'Y-MRC Change' as any,
-                ctx.user,
-                `Set to Y-MRC ${level} (${data.name})`
-            );
-
-            console.log('[ymrc-set] Sending response');
-
-            return ctx.reply({
-                embeds: [
-                    getYmrcSetEmbed(data),
-                    getYmrcEmbed(data),
-                ],
-            });
+            return ctx.reply({ embeds: [ getYmrcSetEmbed(data), getYmrcEmbed(data) ] });
         } catch (err) {
-            console.error('[ymrc-set] ERROR:', err);
-            return ctx.reply({ embeds: [getUnexpectedErrorEmbed()] });
+            console.error('[ymrc-set]', err);
+            return ctx.reply({ embeds: [ getUnexpectedErrorEmbed() ] });
         }
     }
 }
-
 export default YmrcSetCommand;
