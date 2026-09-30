@@ -20,9 +20,11 @@ export const updates: BotUpdate[] = [
         version: '4.1.0',
         title: 'Event posting and status updates',
         changes: [
-            'Events posted by hand in the classic Host / Event / Time format now count toward your quota, just like /event.',
-            'Centurion now reacts to hand-posted events so you know they were counted, and RSVPs work the same way.',
-            'Centurion\'s status now rotates between several messages.',
+            '- Events posted by hand in the classic Host / Event / Time format now count toward your quota, just like /event.',
+            '- Centurion now reacts to hand-posted events so you know they were counted, and RSVPs work the same way.',
+            '- Centurion\'s status now rotates between several messages.',
+            '- Strike system has been fixed.',
+            '- Added in beta testing for recruitment system',
         ],
     },
 ];
