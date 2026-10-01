@@ -484,7 +484,7 @@ export interface BotConfig {
         /**
          * What should be displayed before your value?
          */
-        type?: ActivityType.Playing | ActivityType.Streaming | ActivityType.Listening | ActivityType.Watching | ActivityType.Competing;
+        type?: ActivityType.Playing | ActivityType.Streaming | ActivityType.Listening | ActivityType.Watching | ActivityType.Competing | ActivityType.Custom;
         /**
          * This is the text that is displayed after the type of status.
          */
@@ -498,7 +498,7 @@ export interface BotConfig {
          * type/value above. Each entry works like type/value/url.
          */
         rotation?: {
-            type?: ActivityType.Playing | ActivityType.Streaming | ActivityType.Listening | ActivityType.Watching | ActivityType.Competing;
+            type?: ActivityType.Playing | ActivityType.Streaming | ActivityType.Listening | ActivityType.Watching | ActivityType.Competing | ActivityType.Custom;
             value: string;
             url?: string;
         }[];
