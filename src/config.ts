@@ -245,10 +245,12 @@ export const config: BotConfig = {
         value: 'over Yellonia',
         // Statuses to cycle through. Remove all entries to use the single status above.
         rotation: [
-            { type: ActivityType.Watching, value: 'Watching over Yellonia' },
-            { type: ActivityType.Listening, value: 'Listening for commands' },
-            { type: ActivityType.Watching, value: 'Ensuring activity stays up and running' },
-            { type: ActivityType.Playing, value: 'Playing Solesia'},
+            // Custom shows the text exactly as written. Watching/Listening/Playing
+            // add their own word in front, so don't repeat it in the value.
+            { type: ActivityType.Custom, value: 'Watching over Yellonia' },
+            { type: ActivityType.Custom, value: 'Listening for commands' },
+            { type: ActivityType.Custom, value: 'Ensuring activity stays up and running' },
+            { type: ActivityType.Custom, value: 'Playing Solesia' },
         ],
         // Seconds between changes. Minimum 5.
         rotationSeconds: 10,
@@ -256,7 +258,8 @@ export const config: BotConfig = {
     // Posts new entries from src/updates.ts. Add channel IDs, then set enabled to true.
     updateAnnouncements: {
         enabled: false,
-        channelIds: [737823381994602664],
+        // IDs must be in quotes. Unquoted, large numbers get rounded to the wrong ID.
+        channelIds: [ '737823381994602664' ],
     },
     status: 'online',
     deleteWallURLs: false,
