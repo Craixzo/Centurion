@@ -22,6 +22,8 @@ class QbotClient extends Client {
                 GatewayIntentBits.GuildMembers,
                 GatewayIntentBits.GuildMessageReactions,
                 GatewayIntentBits.MessageContent,
+                // Recruitment ModMail: recruits talk to their officer by DMing the bot.
+                GatewayIntentBits.DirectMessages,
             ],
             // Without these, reactions on messages the bot has not cached
             // (i.e. anything posted before the last restart) never fire an
