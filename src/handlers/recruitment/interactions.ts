@@ -79,7 +79,7 @@ export const handleRecruitmentComponent = async (interaction: MessageComponentIn
             return ephemeral(interaction, result.message);
         }
 
-        if(!member) return ephemeral(interaction, 'You must be in the recruitment server to do this.');
+        if(!member) return ephemeral(interaction, 'You must be in the officer server to do this.');
         const isRecruit = member.id === request.discordId;
         const manager = canManageRequest(member, request);
 
