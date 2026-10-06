@@ -181,7 +181,7 @@ export const config: BotConfig = {
         strikeLimit: 3,
         requireConfirmation: false,
         notifyExemptRoleIds: [],
-        sendDMs: false,
+        sendDMs: true,
     },
 
     logChannels: {
