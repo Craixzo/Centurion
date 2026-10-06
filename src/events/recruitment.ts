@@ -1,35 +1,38 @@
-import { Client, GuildMember, PartialGuildMember } from 'discord.js';
-import { settings, isEnabled } from '../handlers/recruitment/common';
+import { Client, GuildMember, Message, PartialGuildMember } from 'discord.js';
+import { settings, isEnabled, mainGuildId, officerGuildId } from '../handlers/recruitment/common';
 import * as service from '../handlers/recruitment/service';
 import { provider } from '../database';
 
 /** Sweep cadence: reminders, auto-release, LOA release, missing channels, dashboard. */
 const SWEEP_INTERVAL = 5 * 60 * 1000;
 
-const inRecruitmentGuild = (guildId: string) => isEnabled() && guildId === settings().guildId;
+const isMain = (guildId: string) => isEnabled() && guildId === mainGuildId();
+const isOfficer = (guildId: string) => isEnabled() && guildId === officerGuildId();
 
 const registerRecruitment = (client: Client) => {
     client.on('guildMemberUpdate', async (oldMember: GuildMember | PartialGuildMember, newMember: GuildMember) => {
-        if(!inRecruitmentGuild(newMember.guild.id)) return;
         try {
-            const roleId = settings().candidateRoleId;
-            const had = !oldMember.partial && oldMember.roles.cache.has(roleId);
-            if(roleId && !had && newMember.roles.cache.has(roleId)) {
-                // Uncached old state means we cannot tell if the role is new, so
-                // only start for someone not on the baseline and with no history.
-                // Before the baseline exists, never start from an uncached update.
-                if(!oldMember.partial) {
-                    await service.startRecruitment(newMember);
-                } else {
-                    const baseline = await service.getBaseline();
-                    if(baseline && !baseline.has(newMember.id) && !(await provider.hasAnyRecruitment(newMember.id))) {
+            // Main server: Military Candidate role starts recruitment.
+            if(isMain(newMember.guild.id)) {
+                const roleId = settings().candidateRoleId;
+                const had = !oldMember.partial && oldMember.roles.cache.has(roleId);
+                if(roleId && !had && newMember.roles.cache.has(roleId)) {
+                    // Uncached old state means we cannot tell if the role is new, so
+                    // only start for someone not on the baseline and with no history.
+                    // Before the baseline exists, never start from an uncached update.
+                    if(!oldMember.partial) {
                         await service.startRecruitment(newMember);
+                    } else {
+                        const baseline = await service.getBaseline();
+                        if(baseline && !baseline.has(newMember.id) && !(await provider.hasAnyRecruitment(newMember.id))) {
+                            await service.startRecruitment(newMember);
+                        }
                     }
                 }
             }
 
-            // Roles removed: release anything they can no longer handle.
-            if(!oldMember.partial && oldMember.roles.cache.size > newMember.roles.cache.size) {
+            // Officer server: roles removed means they may no longer handle their recruits.
+            if(isOfficer(newMember.guild.id) && !oldMember.partial && oldMember.roles.cache.size > newMember.roles.cache.size) {
                 await service.recheckOfficer(newMember);
             }
         } catch (err) {
@@ -45,18 +48,25 @@ const registerRecruitment = (client: Client) => {
         }
     });
 
-    client.on('messageCreate', async (message) => {
-        if(!message.guild || message.author.bot || !inRecruitmentGuild(message.guild.id)) return;
-        if(!('name' in message.channel) || !message.channel.name?.startsWith('recruit-')) return;
+    client.on('messageCreate', async (message: Message) => {
+        if(message.author.bot || !isEnabled()) return;
         try {
-            await service.recordActivity(message);
+            // Recruit DMing the bot: relay into their officer-side channel.
+            if(!message.guild) {
+                await service.relayFromRecruit(message);
+                return;
+            }
+            // Officer writing in a recruitment channel: relay to the recruit.
+            if(!isOfficer(message.guild.id)) return;
+            if(!('name' in message.channel) || !message.channel.name?.startsWith('recruit-')) return;
+            await service.relayFromTicket(message);
         } catch (err) {
-            console.error('[recruitment] activity:', err);
+            console.error('[recruitment] relay:', err);
         }
     });
 
     client.on('channelDelete', async (channel) => {
-        if(!('guild' in channel) || !inRecruitmentGuild(channel.guild.id)) return;
+        if(!('guild' in channel) || !isOfficer(channel.guild.id)) return;
         try {
             const request = await provider.findRecruitmentByChannel(channel.id);
             if(request) await service.recreateTicket(channel.guild, request);
