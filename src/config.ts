@@ -267,10 +267,16 @@ export const config: BotConfig = {
     // Fill in the IDs, then set enabled to true. Branch keys must never change.
     recruitment: {
         enabled: false,
+        // Main server: where the Military Candidate role is given and placement roles are applied.
         guildId: '737823381218525184',
+        // Officer server: claim notices, dashboard, ModMail channels and transcripts all live here.
+        officerGuildId: '1404909229222924428',
         candidateRoleId: '',
+        // Category in the OFFICER server for ModMail channels.
         ticketCategoryId: '',
-        dashboardChannelId: '',
+        // List of available recruits (officer server).
+        dashboardChannelId: '1557084762613747752',
+        // Transcripts of finished recruitments (officer server).
         transcriptChannelId: '',
         leadershipRoleIds: [],
         reminderHours: 24,
@@ -283,7 +289,7 @@ export const config: BotConfig = {
                 key: 'army',
                 name: 'Yellonian Army',
                 officerRoleIds: [],
-                notifyChannelId: '',
+                notifyChannelId: '1445193629227417732',
                 roleId: '',
                 divisions: [
                     { name: '1st Infantry Division', roleId: '' },
@@ -295,7 +301,7 @@ export const config: BotConfig = {
                 key: 'navy',
                 name: 'Yellonian Navy',
                 officerRoleIds: [],
-                notifyChannelId: '',
+                notifyChannelId: '1445193629227417732',
                 roleId: '',
                 divisions: [
                     { name: '2nd Fleet', roleId: '' },
@@ -305,7 +311,7 @@ export const config: BotConfig = {
                 key: 'airforce',
                 name: 'Yellonian Air Force',
                 officerRoleIds: [],
-                notifyChannelId: '',
+                notifyChannelId: '1445193629227417732',
                 roleId: '',
                 divisions: [
                     { name: '4th Air Combat Division', roleId: '' },
@@ -316,7 +322,7 @@ export const config: BotConfig = {
                 key: 'mpc',
                 name: 'Military Police Corps',
                 officerRoleIds: [],
-                notifyChannelId: '',
+                notifyChannelId: '1445193629227417732',
                 roleId: '',
                 divisions: [],
             },
@@ -324,7 +330,7 @@ export const config: BotConfig = {
                 key: 'specwar',
                 name: 'Special Warfare',
                 officerRoleIds: [],
-                notifyChannelId: '',
+                notifyChannelId: '1445193629227417732',
                 roleId: '',
                 divisions: [],
             },
@@ -333,7 +339,7 @@ export const config: BotConfig = {
                 name: "I'm Not Sure",
                 general: true,
                 officerRoleIds: [],
-                notifyChannelId: '',
+                notifyChannelId: '1445193629227417732',
             },
         ],
     },
