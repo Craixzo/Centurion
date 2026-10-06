@@ -41,6 +41,15 @@ export const settings = () => config.recruitment;
 
 export const isEnabled = (): boolean => !!config.recruitment?.enabled && !!config.recruitment.guildId;
 
+/** Main server: Military Candidate role and placement roles. */
+export const mainGuildId = (): string => config.recruitment?.guildId || '';
+
+/** Officer server: everything officers see and do. Falls back to the main server. */
+export const officerGuildId = (): string => config.recruitment?.officerGuildId || config.recruitment?.guildId || '';
+
+/** Messages an officer starts with this stay in the channel and are not sent to the recruit. */
+export const INTERNAL_NOTE_PREFIX = '//';
+
 export const getBranches = (): RecruitmentBranch[] => config.recruitment?.branches || [];
 
 export const getBranch = (key?: string | null): RecruitmentBranch | undefined =>
