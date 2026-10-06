@@ -266,7 +266,7 @@ export const config: BotConfig = {
 
     // Fill in the IDs, then set enabled to true. Branch keys must never change.
     recruitment: {
-        enabled: false,
+        enabled: true,
         // Main server: where the Military Candidate role is given and placement roles are applied.
         guildId: '737823381218525184',
         // Officer server: claim notices, dashboard, ModMail channels and transcripts all live here.
