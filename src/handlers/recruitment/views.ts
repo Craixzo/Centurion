@@ -14,6 +14,8 @@ import {
     branchName,
     getBranch,
     getBranches,
+    officerGuildId,
+    INTERNAL_NOTE_PREFIX,
 } from './common';
 
 const colorFor = (status: string): any => {
@@ -33,20 +35,22 @@ const notesFor = (request: any): string | null => {
 const button = (id: string, label: string, style: ButtonStyle = ButtonStyle.Secondary) =>
     new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(style);
 
-const ticketUrl = (request: any) => `https://discord.com/channels/${request.guildId}/${request.channelId}`;
+const ticketUrl = (request: any) => `https://discord.com/channels/${officerGuildId()}/${request.channelId}`;
 
+/** Shown on the pinned message in the officer-side channel. */
 const statusGuidance = (request: any): string => {
+    const relayHelp = `Messages the assigned officer sends here are delivered to the recruit by DM, and their replies appear here. Start a message with ${INTERNAL_NOTE_PREFIX} to keep it as an internal note.`;
     switch(request.status) {
         case Status.Awaiting:
-            return 'An officer will claim this recruitment request when available.';
+            return 'Waiting for an officer to claim this recruit.';
         case Status.Assigned:
-            return `${officerText(request)} is your recruitment officer. Send your messages in this channel.`;
+            return `Assigned to ${officerText(request)}. Introduce yourself to start the conversation.\n\n${relayHelp}`;
         case Status.Contact:
-            return 'Contact has been made. Your officer will move you into training.';
+            return `Contact established. Move the recruit to training when ready.\n\n${relayHelp}`;
         case Status.Training:
-            return 'Training is underway. Follow your officer\'s instructions in this channel.';
+            return `Training is underway.\n\n${relayHelp}`;
         case Status.Ready:
-            return 'Training is complete. Your officer will place you in a division.';
+            return 'Training complete. Use Complete Recruitment to place them in a division.';
         case Status.Completed:
             return `Recruitment complete. Placed in ${request.division}.`;
         case Status.Closed:
@@ -66,7 +70,7 @@ export const getCandidateDmEmbed = (): EmbedBuilder => new EmbedBuilder()
         '',
         'Choose the branch you want to join from the menu below. If you are not sure, choose "I\'m Not Sure" and a recruitment officer will help you decide.',
         '',
-        'Once you choose, a private recruitment channel will be opened for you in the server, where an officer will help you through the rest of the process.',
+        'Once you choose, your request goes to our recruitment officers. An officer will message you here, in this DM, and you can reply to them right here.',
     ].join('\n'))
     .setTimestamp();
 
@@ -87,9 +91,9 @@ export const getBranchChosenEmbed = (request: any): EmbedBuilder => new EmbedBui
     .setDescription([
         `You chose: **${branchName(request.branch)}**`,
         '',
-        request.channelId
-            ? `Your recruitment channel is <#${request.channelId}>. Please send your messages there.`
-            : 'Your recruitment channel is being set up. You will be notified here when an officer claims your request.',
+        'Your request has been sent to our recruitment officers. You will get a message here when an officer is assigned to you.',
+        '',
+        'You can reply in this DM at any time, and your messages will be passed on to the recruitment team.',
     ].join('\n'))
     .setTimestamp();
 
@@ -106,7 +110,7 @@ export const getTicketEmbed = (request: any): EmbedBuilder => {
         .setTitle('YELLONIAN MILITARY RECRUITMENT')
         .setColor(colorFor(request.status))
         .addFields(
-            { name: 'Recruit', value: `<@${request.discordId}>`, inline: true },
+            { name: 'Recruit', value: `${request.username} (<@${request.discordId}>)`, inline: true },
             { name: 'Requested Branch', value: branchName(request.branch), inline: true },
             { name: 'Status', value: STATUS_LABELS[request.status] || request.status, inline: true },
             { name: 'Recruitment Officer', value: officerText(request), inline: true },
@@ -239,3 +243,28 @@ export const getListEmbed = (title: string, requests: any[], empty: string): Emb
         .setDescription(lines.length ? lines.join('\n') : empty)
         .setTimestamp();
 };
+
+// ---------------------------------------------------------------- ModMail relay
+
+const relayBody = (content: string, attachmentUrls: string[]) =>
+    [ content, ... attachmentUrls ].filter(Boolean).join('\n').slice(0, 4000) || '(no text)';
+
+/** A recruit's DM, shown in the officer-side channel. */
+export const getRecruitRelayEmbed = (request: any, content: string, attachmentUrls: string[]): EmbedBuilder => new EmbedBuilder()
+    .setAuthor({ name: `${request.username} (recruit)` })
+    .setColor(mainColor)
+    .setDescription(relayBody(content, attachmentUrls))
+    .setTimestamp();
+
+/** An officer's message, delivered to the recruit by DM. */
+export const getOfficerRelayEmbed = (officerName: string, content: string, attachmentUrls: string[]): EmbedBuilder => new EmbedBuilder()
+    .setAuthor({ name: `${officerName} (Recruitment Officer)` })
+    .setColor(mainColor)
+    .setDescription(relayBody(content, attachmentUrls))
+    .setFooter({ text: 'Reply to this DM to answer your officer.' })
+    .setTimestamp();
+
+/** Internal system note in the officer-side channel. */
+export const getNoteEmbed = (text: string): EmbedBuilder => new EmbedBuilder()
+    .setColor(mainColor)
+    .setDescription(text);
