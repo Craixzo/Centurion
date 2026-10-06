@@ -271,13 +271,13 @@ export const config: BotConfig = {
         guildId: '737823381218525184',
         // Officer server: claim notices, dashboard, ModMail channels and transcripts all live here.
         officerGuildId: '1404909229222924428',
-        candidateRoleId: '',
+        candidateRoleId: '1121997390019305613',
         // Category in the OFFICER server for ModMail channels.
-        ticketCategoryId: '',
+        ticketCategoryId: '1557097389188448387',
         // List of available recruits (officer server).
         dashboardChannelId: '1557084762613747752',
         // Transcripts of finished recruitments (officer server).
-        transcriptChannelId: '',
+        transcriptChannelId: '1557097080080834570',
         leadershipRoleIds: [],
         reminderHours: 24,
         autoReleaseHours: 48,
@@ -290,21 +290,21 @@ export const config: BotConfig = {
                 name: 'Yellonian Army',
                 officerRoleIds: [],
                 notifyChannelId: '1445193629227417732',
-                roleId: '',
+                roleId: '738123425566163065',
                 divisions: [
-                    { name: '1st Infantry Division', roleId: '' },
-                    { name: '3rd Armored Division', roleId: '' },
-                    { name: '6th Marines', roleId: '' },
+                    { name: '1st Infantry Division', roleId: '827674126495776777' },
+                    { name: '3rd Armored Division', roleId: '827674129658282014' },
                 ],
             },
             {
                 key: 'navy',
                 name: 'Yellonian Navy',
                 officerRoleIds: [],
-                notifyChannelId: '1445193629227417732',
-                roleId: '',
+                notifyChannelId: '738123427646537819',
+                roleId: '738123425566163065',
                 divisions: [
                     { name: '2nd Fleet', roleId: '' },
+                    { name: '6th Marines', roleId: '' },
                 ],
             },
             {
@@ -312,7 +312,7 @@ export const config: BotConfig = {
                 name: 'Yellonian Air Force',
                 officerRoleIds: [],
                 notifyChannelId: '1445193629227417732',
-                roleId: '',
+                roleId: '756919891474382878',
                 divisions: [
                     { name: '4th Air Combat Division', roleId: '' },
                     { name: '9th Helicopter Operations Division', roleId: '' },
@@ -323,7 +323,7 @@ export const config: BotConfig = {
                 name: 'Military Police Corps',
                 officerRoleIds: [],
                 notifyChannelId: '1445193629227417732',
-                roleId: '',
+                roleId: '738162175847432226',
                 divisions: [],
             },
             {
