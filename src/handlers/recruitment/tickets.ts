@@ -10,7 +10,7 @@ import {
 } from 'discord.js';
 import { discordClient } from '../../main';
 import { mainColor } from '../locale';
-import { settings, branchName, STATUS_LABELS } from './common';
+import { settings, branchName, STATUS_LABELS, mainGuildId, officerGuildId } from './common';
 import { getTicketEmbed, getTicketComponents } from './views';
 
 const MEMBER_ALLOW = [
@@ -23,11 +23,16 @@ const MEMBER_ALLOW = [
 
 const MEMBER_EDIT = { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, AttachFiles: true, EmbedLinks: true };
 
-export const getRecruitmentGuild = async (): Promise<Guild | null> => {
-    const guildId = settings()?.guildId;
+const fetchGuild = async (guildId: string): Promise<Guild | null> => {
     if(!guildId) return null;
     return discordClient.guilds.cache.get(guildId) || await discordClient.guilds.fetch(guildId).catch((): null => null);
 };
+
+/** Officer server: ModMail channels, notices, dashboard, transcripts. */
+export const getRecruitmentGuild = (): Promise<Guild | null> => fetchGuild(officerGuildId());
+
+/** Main server: Military Candidate role and placement roles. */
+export const getMainGuild = (): Promise<Guild | null> => fetchGuild(mainGuildId());
 
 export const getTicketChannel = (guild: Guild, channelId?: string | null): TextChannel | null => {
     if(!channelId) return null;
@@ -46,15 +51,15 @@ const channelNameFor = (request: any): string => {
  * than leaving the recruit without a channel.
  */
 export const createTicketChannel = async (guild: Guild, request: any, note?: string): Promise<{ channel: TextChannel; controlMessage: Message } | null> => {
+    // The recruit is not in the officer server; they take part through DMs.
     const overwrites: OverwriteResolvable[] = [
         { id: guild.roles.everyone.id, deny: [ PermissionFlagsBits.ViewChannel ] },
         { id: discordClient.user.id, allow: [ ... MEMBER_ALLOW, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ManageMessages ] },
-        { id: request.discordId, allow: MEMBER_ALLOW },
     ];
     for(const roleId of settings()?.leadershipRoleIds || []) {
         if(roleId && guild.roles.cache.has(roleId)) overwrites.push({ id: roleId, allow: MEMBER_ALLOW });
     }
-    if(request.officerId) overwrites.push({ id: request.officerId, allow: MEMBER_ALLOW });
+    if(request.officerId && guild.members.cache.has(request.officerId)) overwrites.push({ id: request.officerId, allow: MEMBER_ALLOW });
 
     const base = {
         name: channelNameFor(request),
@@ -81,12 +86,11 @@ export const createTicketChannel = async (guild: Guild, request: any, note?: str
         }
     }
 
-    const content = [ `<@${request.discordId}>`, note ].filter(Boolean).join('\n');
     const controlMessage = await channel.send({
-        content,
+        content: note || undefined,
         embeds: [ getTicketEmbed({ ... request, channelId: channel.id }) ],
         components: getTicketComponents({ ... request, channelId: channel.id }),
-        allowedMentions: { users: [ request.discordId ] },
+        allowedMentions: { parse: [] },
     });
     await controlMessage.pin().catch((): null => null);
 
@@ -162,11 +166,11 @@ export const archiveTicket = async (guild: Guild, request: any, summary: EmbedBu
         await channel.delete('Recruitment archived');
         return true;
     } catch (err) {
-        console.error('[recruitment] transcript failed, locking channel instead:', err);
-        await revokeAccess(channel, request.discordId);
+        console.error('[recruitment] transcript failed, keeping channel instead:', err);
+        if(request.officerId) await revokeAccess(channel, request.officerId);
         await channel.send({ embeds: [ new EmbedBuilder()
             .setColor(mainColor)
-            .setDescription('This request is finished, but the transcript could not be saved. The channel has been kept for leadership. Check the transcript channel configuration.') ] })
+            .setDescription('This request is finished, but the transcript could not be saved, so the channel has been kept for leadership. Check the transcript channel configuration.') ] })
             .catch((): null => null);
         return false;
     }
