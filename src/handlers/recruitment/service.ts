@@ -14,6 +14,9 @@ import {
     placedRoleIds,
     canHandleBranch,
     hoursToMs,
+    mainGuildId,
+    officerGuildId,
+    INTERNAL_NOTE_PREFIX,
 } from './common';
 import {
     getCandidateDmEmbed,
@@ -25,9 +28,13 @@ import {
     getNoticeComponents,
     getReminderEmbed,
     getReminderComponents,
+    getRecruitRelayEmbed,
+    getOfficerRelayEmbed,
+    getNoteEmbed,
 } from './views';
 import {
     getRecruitmentGuild,
+    getMainGuild,
     getTicketChannel,
     createTicketChannel,
     grantOfficerAccess,
@@ -53,14 +60,21 @@ const dmUser = async (userId: string, embed: EmbedBuilder, components: any[] = [
     }
 };
 
+/** Note in the officer-side channel. Never reaches the recruit. */
 const postInTicket = async (guild: Guild, request: any, text: string, mention?: string) => {
     const channel = getTicketChannel(guild, request.channelId);
     if(!channel) return;
     await channel.send({
         content: mention ? `<@${mention}>` : undefined,
-        embeds: [ new EmbedBuilder().setColor(mainColor).setDescription(text) ],
+        embeds: [ getNoteEmbed(text) ],
         allowedMentions: { users: mention ? [ mention ] : [] },
     }).catch((err) => console.error('[recruitment] ticket post:', err));
+};
+
+/** Status message to the recruit, by DM (their only view of the process). */
+const notifyRecruit = async (request: any, text: string) => {
+    if(request.dmReachable === false) return;
+    await dmUser(request.discordId, getRecruitNoticeDm(text));
 };
 
 /** Resolves a member, distinguishing "left the server" from a failed fetch. */
@@ -172,7 +186,7 @@ const candidateDmAllowed = (): boolean => {
 /** Entry point: the member was given the Military Candidate role. */
 export const startRecruitment = async (member: GuildMember, source = 'role'): Promise<void> => {
     if(!isEnabled() || member.user.bot) return;
-    if(member.guild.id !== settings().guildId) return;
+    if(member.guild.id !== mainGuildId()) return;
 
     if(member.roles.cache.some((role) => placedRoleIds().includes(role.id))) {
         console.log(`[recruitment] ${member.user.tag} already holds a branch or division role; not starting recruitment.`);
@@ -212,7 +226,8 @@ export const startRecruitment = async (member: GuildMember, source = 'role'): Pr
         lastActivityAt: new Date(),
     });
     await log(request.id, null, 'DM_FAILED');
-    await openRequest(member.guild, request.id, 'Welcome to the Yellonian Military recruitment process. An officer will help you choose a branch here.');
+    const officerGuild = await getRecruitmentGuild();
+    if(officerGuild) await openRequest(officerGuild, request.id, `This candidate cannot receive DMs from Centurion, so messages here cannot reach them. Contact ${member.user.username} directly in the main server.`);
 };
 
 export const selectBranch = async (requestId: string, userId: string, branchKey: string): Promise<Result & { request?: any }> => {
@@ -271,10 +286,8 @@ export const claim = async (requestId: string, member: GuildMember): Promise<Res
 
     await log(requestId, member.id, 'CLAIMED');
     await refreshViews(guild, requestId);
-    await postInTicket(guild, request, `Your recruitment request has been claimed by <@${member.id}>. They will be assisting you with your military onboarding. Please reply here.`, request.discordId);
-    if(request.dmReachable) {
-        await dmUser(request.discordId, getRecruitNoticeDm(`Your recruitment request has been claimed by <@${member.id}>. They will be assisting you with your military onboarding.${request.channelId ? `\n\nContinue in <#${request.channelId}>.` : ''}`));
-    }
+    await postInTicket(guild, request, `Claimed by <@${member.id}>. Messages you send here are delivered to the recruit by DM. Start a message with ${INTERNAL_NOTE_PREFIX} to keep it internal.`, member.id);
+    await notifyRecruit(request, `Your recruitment request has been claimed by **${member.displayName}**. They will be assisting you with your military onboarding.\n\nYou can talk to them by replying here, in this DM.`);
     await dmUser(member.id, getRecruitNoticeDm(`You are now responsible for **${request.username}** (${branchName(request.branch)}).${request.channelId ? `\n\nRecruitment channel: <#${request.channelId}>` : ''}\n\nIf you cannot continue, release the recruit so another officer can help them.`));
 
     return ok(`You claimed ${request.username}.${request.channelId ? ` Their channel is <#${request.channelId}>.` : ''}`);
@@ -299,12 +312,13 @@ export const release = async (requestId: string, actorId: string | null, reason:
         if(channel) await revokeAccess(channel, request.officerId);
         await postNotice(guild, await provider.findRecruitment(requestId));
         await refreshViews(guild, requestId);
-        await postInTicket(guild, request, 'Your recruitment officer is no longer assigned to your request. Another officer will pick you up shortly. You do not need to do anything.');
+        await postInTicket(guild, request, `Released: ${reason}. Back in the queue.`);
     }
 
     if(actorId !== request.officerId) {
         await dmUser(request.officerId, getRecruitNoticeDm(`**${request.username}** has been released from your care and returned to the recruitment queue.\n\nReason: ${reason}`));
     }
+    await notifyRecruit(request, 'Your recruitment officer is no longer assigned to your request. Another officer will pick you up shortly. You do not need to do anything.');
 
     await log(requestId, actorId, 'RELEASED', reason);
     return ok(`${request.username} has been returned to the ${branchName(request.branch)} queue.`);
@@ -315,7 +329,7 @@ const STATUS_STEPS: Record<string, { from: string[]; to: string; action: string;
         from: [ Status.Assigned, Status.Contact ],
         to: Status.Training,
         action: 'TRAINING_STARTED',
-        text: 'Your training has started. Follow your officer\'s instructions in this channel.',
+        text: 'Your training has started. Follow your officer\'s instructions.',
     },
     ready: {
         from: [ Status.Training ],
@@ -340,7 +354,8 @@ export const advance = async (requestId: string, member: GuildMember, step: 'tra
 
     await log(requestId, member.id, config.action);
     await refreshViews(member.guild, requestId);
-    await postInTicket(member.guild, request, config.text);
+    await postInTicket(member.guild, request, `Status changed to ${step === 'training' ? 'Training' : 'Ready for Placement'} by <@${member.id}>.`);
+    await notifyRecruit(request, config.text);
     return ok('Status updated.');
 };
 
@@ -374,7 +389,8 @@ export const changeBranch = async (requestId: string, member: GuildMember, branc
     const updated = await provider.findRecruitment(requestId);
     if(updated.status === Status.Awaiting) await postNotice(member.guild, updated);
     await refreshViews(member.guild, requestId);
-    await postInTicket(member.guild, request, `Requested branch changed to **${branch.name}**.`);
+    await postInTicket(member.guild, request, `Requested branch changed to **${branch.name}** by <@${member.id}>.`);
+    await notifyRecruit(request, `Your requested branch has been changed to **${branch.name}**.`);
     return ok(`Branch changed to ${branch.name}.`);
 };
 
@@ -417,7 +433,8 @@ export const complete = async (requestId: string, member: GuildMember, division:
     await log(requestId, member.id, 'COMPLETED', division);
     const finished = await provider.findRecruitment(requestId);
 
-    await applyPlacementRoles(member.guild, finished, division);
+    const mainGuild = await getMainGuild();
+    if(mainGuild) await applyPlacementRoles(mainGuild, finished, division);
     await dmUser(finished.discordId, getRecruitNoticeDm(`Your recruitment is complete. Welcome to the **${branch.name}**.\n\nDivision: ${division}\nRecruitment officer: <@${member.id}>`));
     await refreshViews(member.guild, requestId);
     await archiveTicket(member.guild, finished, summaryEmbed(finished));
@@ -469,20 +486,14 @@ export const continueRecruitment = async (requestId: string, userId: string): Pr
 
 // ---------------------------------------------------------------- activity
 
-/** Called for every message in a recruitment channel. */
-export const recordActivity = async (message: Message) => {
-    if(message.author.bot || !message.guild) return;
-    const request = await provider.findRecruitmentByChannel(message.channel.id);
-    if(!request) return;
+const attachmentUrls = (message: Message): string[] => [ ... message.attachments.values() ].map((attachment) => attachment.url);
 
-    const isRecruit = message.author.id === request.discordId;
-    const isOfficer = message.author.id === request.officerId;
-    if(!isRecruit && !isOfficer) return;
-
+/** Records activity, and moves Officer Assigned to Contact Established once both sides have spoken. */
+const markActivity = async (guild: Guild | null, request: any, side: 'recruit' | 'officer') => {
     const data: any = { lastActivityAt: new Date(), reminderSentAt: null, extendedAt: null };
     if(request.officerId) {
-        if(isRecruit) data.recruitSpoke = true;
-        if(isOfficer) data.officerSpoke = true;
+        if(side === 'recruit') data.recruitSpoke = true;
+        if(side === 'officer') data.officerSpoke = true;
     }
     await provider.updateRecruitment(request.id, data);
 
@@ -492,9 +503,72 @@ export const recordActivity = async (message: Message) => {
         const moved = await provider.updateRecruitmentIf(request.id, { status: Status.Assigned }, { status: Status.Contact });
         if(moved) {
             await log(request.id, null, 'CONTACT_ESTABLISHED');
-            await refreshViews(message.guild, request.id);
+            if(guild) await refreshViews(guild, request.id);
         }
     }
+};
+
+/** Recruits who have been told their DM was received while still unclaimed (once per request per run). */
+const acknowledgedWhileQueued = new Set<string>();
+
+/** A recruit DMed the bot: pass it into their officer-side channel. */
+export const relayFromRecruit = async (message: Message) => {
+    if(message.author.bot || message.guild) return;
+    const request = await provider.findActiveRecruitmentByUser(message.author.id);
+    if(!request) return;
+
+    if(request.status === Status.PendingBranch) {
+        await message.author.send({ embeds: [ getRecruitNoticeDm('Please choose a branch from the menu in the message above first. If you are not sure, choose "I\'m Not Sure".') ] }).catch((): null => null);
+        return;
+    }
+
+    const guild = await getRecruitmentGuild();
+    const channel = guild ? getTicketChannel(guild, request.channelId) : null;
+    if(!channel) {
+        await message.author.send({ embeds: [ getRecruitNoticeDm('Your message could not be delivered right now. Please try again in a few minutes.') ] }).catch((): null => null);
+        return;
+    }
+
+    await channel.send({
+        content: request.officerId ? `<@${request.officerId}>` : undefined,
+        embeds: [ getRecruitRelayEmbed(request, message.content, attachmentUrls(message)) ],
+        allowedMentions: { users: request.officerId ? [ request.officerId ] : [] },
+    });
+    await markActivity(guild, request, 'recruit');
+
+    if(!request.officerId && !acknowledgedWhileQueued.has(request.id)) {
+        acknowledgedWhileQueued.add(request.id);
+        await message.author.send({ embeds: [ getRecruitNoticeDm('Your message has been passed to the recruitment team. An officer will reply here once your request is claimed.') ] }).catch((): null => null);
+    }
+};
+
+/**
+ * A message in an officer-side channel. Only the assigned officer's messages
+ * are delivered to the recruit; anything starting with the internal-note
+ * prefix, and anything from anyone else, stays in the channel.
+ */
+export const relayFromTicket = async (message: Message) => {
+    if(message.author.bot || !message.guild) return;
+    const request = await provider.findRecruitmentByChannel(message.channel.id);
+    if(!request) return;
+    if(message.author.id !== request.officerId) return;
+    if(message.content.trim().startsWith(INTERNAL_NOTE_PREFIX)) return;
+
+    const officerName = message.member?.displayName || message.author.username;
+    const delivered = request.dmReachable !== false
+        && !!(await dmUser(request.discordId, getOfficerRelayEmbed(officerName, message.content, attachmentUrls(message))));
+
+    if(!delivered) {
+        await message.reply({
+            embeds: [ getNoteEmbed(`Not delivered: ${request.username} cannot receive DMs from Centurion. Contact them directly in the main server.`) ],
+            allowedMentions: { repliedUser: false },
+        }).catch((): null => null);
+        if(request.dmReachable !== false) await provider.updateRecruitment(request.id, { dmReachable: false });
+        await refreshViews(message.guild, request.id);
+        return;
+    }
+
+    await markActivity(message.guild, request, 'officer');
 };
 
 export const recreateTicket = async (guild: Guild, request: any) => {
@@ -508,18 +582,25 @@ export const recreateTicket = async (guild: Guild, request: any) => {
 // ---------------------------------------------------------------- member events
 
 export const handleMemberLeft = async (guildId: string, userId: string) => {
-    if(!isEnabled() || guildId !== settings().guildId) return;
+    if(!isEnabled()) return;
 
-    const own = await provider.findActiveRecruitmentByUser(userId);
-    if(own) await close(own.id, null, 'Left the server', false);
+    // A recruit leaving the main server ends their recruitment.
+    if(guildId === mainGuildId()) {
+        const own = await provider.findActiveRecruitmentByUser(userId);
+        if(own) await close(own.id, null, 'Left the server', false);
+    }
 
-    for(const request of await provider.findRecruitmentsByOfficer(userId)) {
-        await release(request.id, null, 'Officer left the server');
+    // An officer leaving the officer server releases their recruits.
+    if(guildId === officerGuildId()) {
+        for(const request of await provider.findRecruitmentsByOfficer(userId)) {
+            await release(request.id, null, 'Officer left the server');
+        }
     }
 };
 
-/** Releases anything the officer can no longer handle (role removed). */
+/** Releases anything the officer can no longer handle (role removed in the officer server). */
 export const recheckOfficer = async (member: GuildMember) => {
+    if(member.guild.id !== officerGuildId()) return;
     for(const request of await provider.findRecruitmentsByOfficer(member.id)) {
         if(!canHandleBranch(member, request.branch)) await release(request.id, null, 'Officer no longer authorized for this branch');
     }
@@ -594,14 +675,15 @@ const catchUpMissedCandidates = async (guild: Guild): Promise<void> => {
 export const sweep = async () => {
     if(!isEnabled()) return;
     const guild = await getRecruitmentGuild();
-    if(!guild) {
-        console.warn('[recruitment] recruitment guild not found; check config.recruitment.guildId.');
+    const mainGuild = await getMainGuild();
+    if(!guild || !mainGuild) {
+        console.warn('[recruitment] main or officer server not found; check config.recruitment.guildId and officerGuildId.');
         return;
     }
 
     if(!caughtUp) {
         caughtUp = true;
-        await catchUpMissedCandidates(guild);
+        await catchUpMissedCandidates(mainGuild);
     }
 
     const now = Date.now();
@@ -628,6 +710,12 @@ export const sweep = async () => {
                         await openRequest(guild, request.id, 'You did not choose a branch, so an officer will help you here.');
                     }
                 }
+                continue;
+            }
+
+            // Recruit left the main server while the bot was offline.
+            if(await fetchMember(mainGuild, request.discordId) === 'gone') {
+                await close(request.id, null, 'Left the server', false);
                 continue;
             }
 
