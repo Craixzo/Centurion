@@ -20,7 +20,7 @@ export interface RecruitmentBranch {
     general?: boolean;
     /** Roles allowed to claim this branch's recruits. */
     officerRoleIds: string[];
-    /** Channel where new-recruit notices with the Claim button are posted. */
+    /** Channel (officer server) where new-recruit notices with the Claim button are posted. */
     notifyChannelId: string;
     /** Branch role granted on completion. Optional. */
     roleId?: string;
@@ -35,11 +35,16 @@ export interface BotConfig {
      */
     recruitment?: {
         enabled: boolean;
-        /** The server recruitment runs in. */
+        /** Main server: where the Military Candidate role is given and placement roles are applied. */
         guildId: string;
+        /**
+         * Officer server: claim notices, dashboard, ModMail channels, transcripts,
+         * officer and leadership roles. Leave empty to run everything in guildId.
+         */
+        officerGuildId?: string;
         /** Receiving this role starts the process. */
         candidateRoleId: string;
-        /** Category recruitment channels are created in. */
+        /** Category (in the officer server) ModMail channels are created in. */
         ticketCategoryId: string;
         /** Channel holding the single, self-updating dashboard message. */
         dashboardChannelId: string;
