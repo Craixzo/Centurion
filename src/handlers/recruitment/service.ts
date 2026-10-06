@@ -153,6 +153,22 @@ const releaseFields = (flag: string) => ({
 
 // ---------------------------------------------------------------- lifecycle
 
+/**
+ * Hard ceiling on new-candidate DMs per rolling hour. If someone bulk-adds the
+ * role, everyone past this limit is skipped (logged, not DMed, no request) and
+ * handled manually, rather than risking the bot being flagged for mass DMs.
+ */
+const MAX_CANDIDATE_DMS_PER_HOUR = 15;
+const recentCandidateDms: number[] = [];
+
+const candidateDmAllowed = (): boolean => {
+    const cutoff = Date.now() - 60 * 60 * 1000;
+    while(recentCandidateDms.length && recentCandidateDms[0] < cutoff) recentCandidateDms.shift();
+    if(recentCandidateDms.length >= MAX_CANDIDATE_DMS_PER_HOUR) return false;
+    recentCandidateDms.push(Date.now());
+    return true;
+};
+
 /** Entry point: the member was given the Military Candidate role. */
 export const startRecruitment = async (member: GuildMember, source = 'role'): Promise<void> => {
     if(!isEnabled() || member.user.bot) return;
@@ -160,6 +176,13 @@ export const startRecruitment = async (member: GuildMember, source = 'role'): Pr
 
     if(member.roles.cache.some((role) => placedRoleIds().includes(role.id))) {
         console.log(`[recruitment] ${member.user.tag} already holds a branch or division role; not starting recruitment.`);
+        return;
+    }
+
+    if(await provider.findActiveRecruitmentByUser(member.id)) return;
+
+    if(!candidateDmAllowed()) {
+        console.warn(`[recruitment] hourly DM limit (${MAX_CANDIDATE_DMS_PER_HOUR}) reached; not starting recruitment for ${member.user.tag}. Handle manually.`);
         return;
     }
 
@@ -506,14 +529,15 @@ export const recheckOfficer = async (member: GuildMember) => {
 
 let caughtUp = false;
 
-const BASELINE_KEY = 'recruitment:baselineHolders';
+/** Keyed by role ID: pointing candidateRoleId at a different role records a fresh baseline. */
+const baselineKey = () => `recruitment:baselineHolders:${settings().candidateRoleId}`;
 
 /** Refuse to DM more than this many people in one catch-up pass. */
 const CATCH_UP_LIMIT = 10;
 
 /** Discord IDs that held the role when recruitment was first enabled, or null if not recorded yet. */
 export const getBaseline = async (): Promise<Set<string> | null> => {
-    const stored = await provider.getMeta(BASELINE_KEY);
+    const stored = await provider.getMeta(baselineKey());
     return stored ? new Set<string>(JSON.parse(stored)) : null;
 };
 
@@ -545,7 +569,7 @@ const catchUpMissedCandidates = async (guild: Guild): Promise<void> => {
 
     const baseline = await getBaseline();
     if(!baseline) {
-        await provider.setMeta(BASELINE_KEY, JSON.stringify([ ... role.members.keys() ]));
+        await provider.setMeta(baselineKey(), JSON.stringify([ ... role.members.keys() ]));
         console.log(`[recruitment] baseline recorded: ${role.members.size} existing candidates will not be DMed.`);
         return;
     }
