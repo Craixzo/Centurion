@@ -278,7 +278,7 @@ export const config: BotConfig = {
         dashboardChannelId: '1557084762613747752',
         // Transcripts of finished recruitments (officer server).
         transcriptChannelId: '1557097080080834570',
-        leadershipRoleIds: [],
+        leadershipRoleIds: ['1483243824468721867'],
         reminderHours: 24,
         autoReleaseHours: 48,
         branchSelectTimeoutHours: 48,
@@ -288,7 +288,7 @@ export const config: BotConfig = {
             {
                 key: 'army',
                 name: 'Yellonian Army',
-                officerRoleIds: [],
+                officerRoleIds: ['1404931101482291231'],
                 notifyChannelId: '1445193629227417732',
                 roleId: '738123425566163065',
                 divisions: [
@@ -299,29 +299,29 @@ export const config: BotConfig = {
             {
                 key: 'navy',
                 name: 'Yellonian Navy',
-                officerRoleIds: [],
+                officerRoleIds: ['1404931395616505967'],
                 notifyChannelId: '738123427646537819',
                 roleId: '738123425566163065',
                 divisions: [
-                    { name: '2nd Fleet', roleId: '' },
-                    { name: '6th Marines', roleId: '' },
+                    { name: '2nd Fleet', roleId: '738123426878849065' },
+                    { name: '6th Marines', roleId: '738178192443047987' },
                 ],
             },
             {
                 key: 'airforce',
                 name: 'Yellonian Air Force',
-                officerRoleIds: [],
+                officerRoleIds: ['1404931102052843651'],
                 notifyChannelId: '1445193629227417732',
                 roleId: '756919891474382878',
                 divisions: [
-                    { name: '4th Air Combat Division', roleId: '' },
-                    { name: '9th Helicopter Operations Division', roleId: '' },
+                    { name: '4th Air Combat Division', roleId: '758416841542074399' },
+                    { name: '9th Helicopter Operations Division', roleId: '758417160862957629' },
                 ],
             },
             {
                 key: 'mpc',
                 name: 'Military Police Corps',
-                officerRoleIds: [],
+                officerRoleIds: ['1404931398384619610'],
                 notifyChannelId: '1445193629227417732',
                 roleId: '738162175847432226',
                 divisions: [],
@@ -329,7 +329,7 @@ export const config: BotConfig = {
             {
                 key: 'specwar',
                 name: 'Special Warfare',
-                officerRoleIds: [],
+                officerRoleIds: ['1542605275843006554'],
                 notifyChannelId: '1445193629227417732',
                 roleId: '',
                 divisions: [],
