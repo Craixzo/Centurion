@@ -300,7 +300,7 @@ export const config: BotConfig = {
                 key: 'navy',
                 name: 'Yellonian Navy',
                 officerRoleIds: ['1404931395616505967'],
-                notifyChannelId: '738123427646537819',
+                notifyChannelId: '1445193629227417732',
                 roleId: '738123425566163065',
                 divisions: [
                     { name: '2nd Fleet', roleId: '738123426878849065' },
