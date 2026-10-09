@@ -6,6 +6,7 @@ import { robloxClient } from './main';
 import { getGroupIdForGuild } from './handlers/groupResolver';
 import ms from 'ms';
 import { findEligibleRole } from './handlers/handleXpRankup';
+import { getParliamentResponse } from './handlers/parliament';
 
 /**
  * Which group an API request targets. Callers may pass `groupId` in the body
@@ -27,6 +28,22 @@ app.use(express.json());
 
 app.get('/', (req, res) => {
     res.sendStatus(200);
+});
+
+/**
+ * Public, read-only. The website reads this to draw the Parliament seat chart.
+ * It sits above the API key check below on purpose: it only reports which
+ * parties hold seats and cannot change anything. Seats are changed with the
+ * /seats-set and /seats-remove commands.
+ */
+app.get('/parliament', async (req, res) => {
+    try {
+        res.set('Cache-Control', 'public, max-age=10');
+        return res.json(await getParliamentResponse());
+    } catch (err) {
+        console.error('[api] /parliament', err);
+        return res.status(500).json({ success: false, msg: 'Could not load Parliament seats.' });
+    }
 });
 
 const generateSignalId = () => {
