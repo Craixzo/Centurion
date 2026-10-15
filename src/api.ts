@@ -7,6 +7,7 @@ import { getGroupIdForGuild } from './handlers/groupResolver';
 import ms from 'ms';
 import { findEligibleRole } from './handlers/handleXpRankup';
 import { getParliamentResponse } from './handlers/parliament';
+import { checkRankSkip, describeBlocked } from './handlers/rankSkip';
 
 /**
  * Which group an API request targets. Callers may pass `groupId` in the body
@@ -258,6 +259,9 @@ if(config.api) {
                 return res.send({ success: false, msg: 'That rank is at or above your own.' });
             }
 
+            const skip = await checkRankSkip(robloxGroup.id, groupRoles, Number(targetId), target.role.rank, newRole.rank);
+            if(!skip.allowed) return res.send({ success: false, msg: describeBlocked(skip) });
+
             await robloxGroup.updateMember(Number(targetId), newRole.id);
             const label = direction === 'setrank' ? 'Set Rank' : (direction === 'promote' ? 'Promote' : 'Demote');
             logAction(label, `In-Game (${actor.name})`, null, target, `${target.role.name} (${target.role.rank}) → ${newRole.name} (${newRole.rank})`);
@@ -278,6 +282,8 @@ if(config.api) {
             const groupRoles = await robloxGroup.getRoles();
             const newRole = groupRoles.find((r) => Number(role) === r.rank || Number(role) === r.id || String(role).toLowerCase() === r.name.toLowerCase());
             if(!newRole) throw new Error();
+            const skip = await checkRankSkip(robloxGroup.id, groupRoles, Number(id), robloxMember.role.rank, newRole.rank);
+            if(!skip.allowed) return res.send({ success: false, msg: describeBlocked(skip) });
             await robloxGroup.updateMember(Number(id), newRole.id);
             logAction('Set Rank', 'API Action', null, robloxMember, `${robloxMember.role.name} (${robloxMember.role.rank}) → ${newRole.name} (${newRole.rank})`);
             return res.send({ success: true });
