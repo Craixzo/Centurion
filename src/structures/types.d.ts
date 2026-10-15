@@ -30,6 +30,20 @@ export interface RecruitmentBranch {
 
 export interface BotConfig {
     /**
+     * Rank-skip prevention. In the listed groups, promotions of more than
+     * maxStep ranks at once are blocked in commands and reverted when done
+     * by hand on Roblox. Admins can grant one-time exceptions with /allowrankskip.
+     */
+    rankSkip?: {
+        enabled: boolean;
+        /** Most ranks someone may move up in one change. */
+        maxStep: number;
+        /** Admin roles that bypass the limit in /setrank. */
+        bypassRoleIds: string[];
+        /** Military groups this applies to. */
+        groups: { id: number; name: string }[];
+    };
+    /**
      * Military recruitment pipeline: DM on Military Candidate role, branch
      * selection, officer claiming, private recruitment channels, dashboard.
      */
