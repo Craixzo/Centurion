@@ -21,6 +21,9 @@ import { checkActionEligibility } from '../../handlers/verificationChecks';
 import { logAction } from '../../handlers/handleLogging';
 import { getLinkedRobloxUser } from '../../handlers/accountLinks';
 import { provider } from '../../database';
+import { EmbedBuilder } from 'discord.js';
+import { redColor } from '../../handlers/locale';
+import { checkRankSkip, describeBlocked } from '../../handlers/rankSkip';
 
 class SetRankCommand extends Command {
     constructor() {
@@ -120,6 +123,14 @@ class SetRankCommand extends Command {
 
         const userData = await provider.findUser(robloxUser.id.toString(), robloxGroup.id);
         if(userData.suspendedUntil) return ctx.reply({ embeds: [ getUserSuspendedEmbed() ] });
+
+        const bypass = ctx.member.roles.cache.some((r) => (config.rankSkip?.bypassRoleIds || []).includes(r.id));
+        if(!bypass) {
+            const skip = await checkRankSkip(robloxGroup.id, groupRoles, robloxUser.id, robloxMember.role.rank, role.rank);
+            if(!skip.allowed) {
+                return ctx.reply({ embeds: [ new EmbedBuilder().setTitle('Rank Skip Blocked').setColor(redColor).setDescription(describeBlocked(skip)) ] });
+            }
+        }
 
         try {
             await robloxGroup.updateMember(robloxUser.id, role.id);
