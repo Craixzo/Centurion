@@ -212,6 +212,17 @@ export const config: BotConfig = {
         bypassRoleIds: ['1440292084547321877'],
         groups: [
             { id: 6157380, name: 'Military' },
+            { id: 5801321, name: 'Army' },
+            { id: 6321463, name: 'Navy' },
+            { id: 8467473, name: 'Air Force' },
+            { id: 6338218, name: 'Military Police' },
+            { id: 6407506, name: 'Special Warfare Center' },
+            { id: 6738653, name: 'Officer Candidate School' },
+            { id: 11669822, name: '3rd Armored Division' },
+            { id: 8926171, name: '1st Infantry Division' },
+            { id: 6399975, name: '6th Marines' },
+            { id: 6399869, name: '2nd Fleet' },
+            { id: 32803655, name: 'Air Combat Division' },
             // Add branch or division Roblox groups here, e.g.:
             // { id: 1234567, name: 'Yellonian Army' },
         ],
