@@ -2,6 +2,7 @@ import { robloxClient } from '../main';
 import { logAction } from '../handlers/handleLogging';
 import { getAllGroupIds, getGroupLabel } from '../handlers/groupResolver';
 import { checkRankSkip, isRankSkipGroup } from '../handlers/rankSkip';
+import { config } from '../config';
 
 /** Newest audit entry already seen, per group. */
 const lastRecordedDate = new Map<number, number>();
@@ -60,12 +61,31 @@ const recordGroup = async (groupId: number) => {
     }
 };
 
+/** Groups that failed (bot not in them, no API key access): skipped until this time. */
+const retryAt = new Map<number, number>();
+const RETRY_AFTER = 30 * 60 * 1000;
+
+/** Every managed group plus every rank-skip group. */
+const watchedGroupIds = (): number[] => [ ... new Set([
+    ... getAllGroupIds(),
+    ... (config.rankSkip?.enabled ? (config.rankSkip.groups || []).map((group) => group.id) : []),
+]) ].filter((id) => typeof id === 'number' && id > 0);
+
 const recordAuditLogs = async () => {
-    for(const groupId of getAllGroupIds()) {
+    for(const groupId of watchedGroupIds()) {
+        if((retryAt.get(groupId) || 0) > Date.now()) continue;
         try {
             await recordGroup(groupId);
-        } catch (err) {
-            console.error(`[audit] could not read audit log for group ${groupId}:`, err);
+            if(retryAt.has(groupId)) {
+                retryAt.delete(groupId);
+                console.log(`[audit] group ${groupId} (${getGroupLabel(groupId)}) is reachable again.`);
+            }
+        } catch (err: any) {
+            // A group the bot can't read must never stop the others or crash the bot.
+            if(!retryAt.has(groupId)) {
+                console.warn(`[audit] cannot read the rank log for group ${groupId} (${getGroupLabel(groupId)}): ${err?.message || err}. Check that the API key has access to this group. Retrying every 30 minutes.`);
+            }
+            retryAt.set(groupId, Date.now() + RETRY_AFTER);
         }
     }
     setTimeout(recordAuditLogs, 60000);
