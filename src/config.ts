@@ -202,6 +202,21 @@ export const config: BotConfig = {
         { name: 'Military', id: 6157380 },
     ],
 
+    // Blocks promotions of more than maxStep ranks at once in these groups.
+    // Manual changes on Roblox are reverted; /setrank and the API refuse them.
+    // Admins can allow a one-time skip with /allowrankskip.
+    rankSkip: {
+        enabled: true,
+        maxStep: 1,
+        // Admin roles that may skip ranks with /setrank directly.
+        bypassRoleIds: ['1440292084547321877'],
+        groups: [
+            { id: 6157380, name: 'Military' },
+            // Add branch or division Roblox groups here, e.g.:
+            // { id: 1234567, name: 'Yellonian Army' },
+        ],
+    },
+
     // Group 6157380 is owned by a different account, so it uses its own key.
     groupApiKeys: {
         '6157380': 'ROBLOX_API_KEY_MILITARY',
