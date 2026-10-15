@@ -80,7 +80,9 @@ export const resolveGroup = async (guildId?: string | null, groupFlag?: string |
 export const getGroupLabel = (groupId: number): string => {
     if(groupId === config.groupId) return 'Main';
     const secondary = (config.secondaryGroups || []).find((group) => group.id === groupId);
-    return secondary ? secondary.name : String(groupId);
+    if(secondary) return secondary.name;
+    const rankSkip = (config.rankSkip?.groups || []).find((group) => group.id === groupId);
+    return rankSkip ? rankSkip.name : String(groupId);
 }
 
 /**
