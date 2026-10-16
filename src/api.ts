@@ -8,6 +8,7 @@ import ms from 'ms';
 import { findEligibleRole } from './handlers/handleXpRankup';
 import { getParliamentResponse } from './handlers/parliament';
 import { checkRankSkip, describeBlocked } from './handlers/rankSkip';
+import { getDiscordPerks } from './handlers/discordPerks';
 
 /**
  * Which group an API request targets. Callers may pass `groupId` in the body
@@ -73,6 +74,21 @@ app.get('/events/upcoming', async (req, res) => {
         console.error('[api] /events/upcoming', err);
         return res.status(500).json({ success: false, msg: 'Could not load events.' });
     }
+});
+
+/**
+ * Public, read-only. The in-game overhead tag reads this.
+ * Returns only whether a Roblox user boosts the main Discord server or
+ * displays its server tag — both already visible on Discord — so it sits
+ * above the API key check like /parliament.
+ */
+app.get('/discord-perks', (req, res) => {
+    const robloxId = Number(req.query.robloxId);
+    if(!Number.isInteger(robloxId) || robloxId <= 0) return res.status(400).json({ success: false, msg: 'Missing robloxId.' });
+    const perks = getDiscordPerks(robloxId);
+    if(!perks) return res.status(503).json({ success: false, msg: 'Perks not loaded yet.' });
+    res.set('Cache-Control', 'public, max-age=60');
+    return res.json({ success: true, ...perks });
 });
 
 const generateSignalId = () => {
