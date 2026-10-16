@@ -47,6 +47,34 @@ app.get('/parliament', async (req, res) => {
     }
 });
 
+/**
+ * Public, read-only. The in-game welcome message reads this.
+ * Only returns a count and the next event's title/time — never game links,
+ * hosts or RSVPs — so it sits above the API key check like /parliament.
+ */
+app.get('/events/upcoming', async (req, res) => {
+    try {
+        const now = new Date();
+        const [ count, next ] = await Promise.all([
+            provider.countUpcomingEvents(now),
+            provider.findNextEvent(now),
+        ]);
+        res.set('Cache-Control', 'public, max-age=30');
+        return res.json({
+            success: true,
+            count,
+            next: next ? {
+                title: next.title,
+                type: next.type,
+                startsAt: Math.floor(next.startsAt.getTime() / 1000),
+            } : null,
+        });
+    } catch (err) {
+        console.error('[api] /events/upcoming', err);
+        return res.status(500).json({ success: false, msg: 'Could not load events.' });
+    }
+});
+
 const generateSignalId = () => {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
