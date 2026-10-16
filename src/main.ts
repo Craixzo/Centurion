@@ -18,6 +18,7 @@ import registerQuotaStrikes from './events/quotaStrikes';
 import { registerEventReactions } from './handlers/events';
 import registerRecruitment from './events/recruitment';
 import registerManualEvents from './events/manualEvents';
+import { registerDiscordPerks } from './handlers/discordPerks';
 require('dotenv').config();
 
 // [Ensure Setup]
@@ -57,6 +58,7 @@ registerQuotaStrikes(discordClient);
 registerEventReactions(discordClient);
 registerRecruitment(discordClient);
 registerManualEvents(discordClient);
+registerDiscordPerks(discordClient);
 
 discordClient.on('interactionCreate', handleInteraction as any);
 discordClient.on('messageCreate', handleLegacyCommand);
