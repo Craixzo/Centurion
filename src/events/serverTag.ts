@@ -11,7 +11,7 @@ import { config } from '../config';
  * defensively from several shapes.
  */
 
-const readIdentityGuildId = (member: GuildMember | PartialGuildMember): string | null => {
+export const readIdentityGuildId = (member: GuildMember | PartialGuildMember): string | null => {
     const user: any = member.user;
     if(!user) return null;
 
