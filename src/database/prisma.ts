@@ -120,6 +120,20 @@ class PrismaProvider extends DatabaseProvider {
         });
     }
 
+    /** Global: open events across every guild that haven't started yet. */
+    async countUpcomingEvents(now: Date = new Date()) {
+        return this.db.event.count({ where: { closed: false, startsAt: { gt: now } } });
+    }
+
+    /** Global: the next open event to start, across every guild. */
+    async findNextEvent(now: Date = new Date()) {
+        return this.db.event.findFirst({
+            where: { closed: false, startsAt: { gt: now } },
+            orderBy: { startsAt: 'asc' },
+            select: { title: true, type: true, startsAt: true },
+        });
+    }
+
     /** Upsert, so clicking the other button just flips the answer. */
     async setRsvp(eventId: string, discordId: string, attending: boolean) {
         await this.db.eventRsvp.upsert({
