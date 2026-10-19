@@ -136,7 +136,7 @@ export const config: BotConfig = {
     },
 
     quota: {
-        enabled: true,
+        enabled: false,
         global: true,
         roleIds: [
             '1056133660954337280', 
