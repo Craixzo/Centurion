@@ -7,6 +7,9 @@ import { getGroupIdForGuild } from './handlers/groupResolver';
 import ms from 'ms';
 import { findEligibleRole } from './handlers/handleXpRankup';
 import { getParliamentResponse } from './handlers/parliament';
+import { getLegislationResponse } from './handlers/legislation';
+import { getWantedList } from './handlers/des/records';
+import { registerDesRoutes } from './handlers/des/routes';
 import { checkRankSkip, describeBlocked } from './handlers/rankSkip';
 import { getDiscordPerks } from './handlers/discordPerks';
 import { registerNewsRoutes, registerNewsManageRoutes } from './handlers/news/routes';
@@ -31,6 +34,35 @@ app.use(express.json({ limit: '6mb' }));   // large enough for news image upload
 
 app.get('/', (req, res) => {
     res.sendStatus(200);
+});
+
+/**
+ * Public, read-only. The website reads this for the list of bills (legislation.html).
+ * Bills are changed with the /bill-add, /bill-update and /bill-remove commands.
+ */
+app.get('/legislation', async (req, res) => {
+    try {
+        res.set('Cache-Control', 'public, max-age=10');
+        return res.json(await getLegislationResponse());
+    } catch (err) {
+        console.error('[api] /legislation', err);
+        return res.status(500).json({ success: false, msg: 'Could not load bills.' });
+    }
+});
+
+/**
+ * Public, read-only: the DES Most Wanted page. Only ACTIVE warrants that staff
+ * have put on the list are returned, and only in-game information. Staff manage
+ * it through the protected /des/manage routes.
+ */
+app.get('/des/wanted', async (req, res) => {
+    try {
+        res.set('Cache-Control', 'public, max-age=30');
+        return res.json(await getWantedList());
+    } catch (err) {
+        console.error('[api] /des/wanted', err);
+        return res.status(500).json({ success: false, msg: 'Could not load the wanted list.' });
+    }
 });
 
 /**
@@ -120,6 +152,9 @@ if(config.api) {
 
     // News registration and writers, called by the website for logged-in users (see handlers/news/routes.ts).
     registerNewsManageRoutes(app);
+
+    // DES logins, called by the website (see handlers/des/routes.ts).
+    registerDesRoutes(app);
 
     app.get('/user', async (req, res) => {
         const robloxGroup = await groupFromRequest(req);
