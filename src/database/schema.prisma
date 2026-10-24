@@ -140,3 +140,84 @@ model RecruitmentLog {
 
   @@index([requestId])
 }
+
+/// A news outlet (a newspaper or news site) registered on the Yellonia website.
+/// status: PENDING (awaiting the Ministry of Commerce), APPROVED, DENIED, SUSPENDED
+model NewsOutlet {
+  id               String    @id @default(uuid())
+  slug             String    @unique
+  name             String
+  tagline          String?
+  description      String?
+  accentColor      String    @default("#bed215")
+  iconFile         String?
+  coverFile        String?
+  /// JSON array of section names, e.g. ["Politics","Military"]
+  sections         String    @default("[]")
+  ownerId          String
+  status           String    @default("PENDING")
+  requestChannelId String?
+  requestMessageId String?
+  reviewedBy       String?
+  reviewNote       String?
+  createdAt        DateTime  @default(now())
+  approvedAt       DateTime?
+
+  members  NewsMember[]
+  articles NewsArticle[]
+
+  @@index([status])
+  @@index([ownerId])
+}
+
+/// Someone who can write for an outlet.
+/// role: OWNER, WRITER. status: PENDING (awaiting the Ministry), ACTIVE, DENIED, REMOVED
+model NewsMember {
+  id          String    @id @default(uuid())
+  outletId    String
+  discordId   String
+  displayName String
+  role        String    @default("WRITER")
+  status      String    @default("PENDING")
+  addedBy     String?
+  createdAt   DateTime  @default(now())
+  approvedAt  DateTime?
+
+  outlet NewsOutlet @relation(fields: [outletId], references: [id], onDelete: Cascade)
+
+  @@unique([outletId, discordId])
+  @@index([discordId])
+}
+
+/// One article. body is a JSON array of blocks (paragraphs, headings, quotes, images).
+/// status: DRAFT, SUBMITTED (awaiting staff review), PUBLISHED, REJECTED, REMOVED
+model NewsArticle {
+  id                String    @id @default(uuid())
+  outletId          String
+  slug              String
+  headline          String
+  summary           String?
+  body              String    @default("[]")
+  coverFile         String?
+  coverCaption      String?
+  section           String?
+  authorId          String
+  authorName        String
+  status            String    @default("DRAFT")
+  isCoverStory      Boolean   @default(false)
+  reviewedBy        String?
+  reviewNote        String?
+  announceMessageId String?
+  /// Random key for the review link, so reviewers can read an unpublished article
+  previewKey        String?   @unique
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  submittedAt       DateTime?
+  publishedAt       DateTime?
+
+  outlet NewsOutlet @relation(fields: [outletId], references: [id], onDelete: Cascade)
+
+  @@unique([outletId, slug])
+  @@index([status])
+  @@index([outletId, status, publishedAt])
+}
