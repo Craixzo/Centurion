@@ -55,7 +55,7 @@ export const getMainMember = async (discordId: string): Promise<GuildMember | nu
 }
 
 /** Finds a member of the main server by username, display name or ID. */
-const findMainMember = async (query: string): Promise<GuildMember | null> => {
+export const findMainMember = async (query: string): Promise<GuildMember | null> => {
     const guild = await getMainGuild();
     if(!guild) return null;
     const wanted = query.trim().replace(/^@/, '').toLowerCase();
