@@ -12,6 +12,7 @@ import { handleSecondaryGroup } from '../arguments/handleSecondaryGroup';
 import { getUnknownCommandMessage, getNoPermissionEmbed } from '../handlers/locale';
 import { handleEventType } from '../arguments/handleEventType';
 import { handleRecruitmentComponent } from './recruitment/interactions';
+import { handleNewsComponent, handleNewsModal } from './news/interactions';
 
 const handleInteraction = async (payload: Interaction<CacheType>) => {
     if(payload instanceof CommandInteraction) {
@@ -44,6 +45,10 @@ const handleInteraction = async (payload: Interaction<CacheType>) => {
 
     } else if(payload.isMessageComponent() && payload.customId.startsWith('recruit:')) {
         await handleRecruitmentComponent(payload);
+    } else if(payload.isMessageComponent() && payload.customId.startsWith('news:')) {
+        await handleNewsComponent(payload);
+    } else if(payload.isModalSubmit() && payload.customId.startsWith('news:')) {
+        await handleNewsModal(payload);
     }
 }
 
