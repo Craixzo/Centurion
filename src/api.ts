@@ -9,6 +9,7 @@ import { findEligibleRole } from './handlers/handleXpRankup';
 import { getParliamentResponse } from './handlers/parliament';
 import { checkRankSkip, describeBlocked } from './handlers/rankSkip';
 import { getDiscordPerks } from './handlers/discordPerks';
+import { registerNewsRoutes, registerNewsManageRoutes } from './handlers/news/routes';
 
 /**
  * Which group an API request targets. Callers may pass `groupId` in the body
@@ -26,7 +27,7 @@ const app = express();
 require('dotenv').config();
 
 let signals = [];
-app.use(express.json());
+app.use(express.json({ limit: '6mb' }));   // large enough for news image uploads
 
 app.get('/', (req, res) => {
     res.sendStatus(200);
@@ -91,6 +92,9 @@ app.get('/discord-perks', (req, res) => {
     return res.json({ success: true, ...perks });
 });
 
+// Public, read-only news routes for the website (see handlers/news/routes.ts).
+registerNewsRoutes(app);
+
 const generateSignalId = () => {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
@@ -113,6 +117,9 @@ if(config.api) {
         if(!req.headers.authorization || req.headers.authorization !== process.env.API_KEY) return res.send({ success: false, msg: 'Unauthorized' });
         next();
     });
+
+    // News registration and writers, called by the website for logged-in users (see handlers/news/routes.ts).
+    registerNewsManageRoutes(app);
 
     app.get('/user', async (req, res) => {
         const robloxGroup = await groupFromRequest(req);
