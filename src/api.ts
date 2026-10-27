@@ -13,6 +13,8 @@ import { registerDesRoutes } from './handlers/des/routes';
 import { checkRankSkip, describeBlocked } from './handlers/rankSkip';
 import { getDiscordPerks } from './handlers/discordPerks';
 import { registerNewsRoutes, registerNewsManageRoutes } from './handlers/news/routes';
+import { registerEconomyRoutes } from './handlers/economy/routes';
+import { startEconomy } from './handlers/economy/market';
 
 /**
  * Which group an API request targets. Callers may pass `groupId` in the body
@@ -155,6 +157,9 @@ if(config.api) {
 
     // DES logins, called by the website (see handlers/des/routes.ts).
     registerDesRoutes(app);
+
+    // Corporations and the stock market: the game servers and the website (see handlers/economy/routes.ts).
+    registerEconomyRoutes(app);
 
     app.get('/user', async (req, res) => {
         const robloxGroup = await groupFromRequest(req);
@@ -549,4 +554,7 @@ if(config.api) {
 }
 
 app.listen(process.env.PORT || 3001);
+
+// Seeds Kaliber and samples share prices once a minute.
+startEconomy();
 export { addSignal };
