@@ -221,3 +221,367 @@ model NewsArticle {
   @@index([status])
   @@index([outletId, status, publishedAt])
 }
+
+/// A member of the Department of Emergency Services who can log in to the DES back-end.
+/// department: POLICE, FIRE. status: ACTIVE, FORMER, SUSPENDED.
+/// roles: JSON array, e.g. ["officer","supervisor"].
+model DesMember {
+  id             String    @id @default(uuid())
+  discordId      String    @unique
+  robloxUsername String
+  badgeId        String    @unique
+  department     String
+  rank           String
+  unit           String?
+  roles          String    @default("[\"officer\"]")
+  status         String    @default("ACTIVE")
+  /// One-way scrypt hash; null until the member sets a password
+  passwordHash   String?
+  passwordSetAt  DateTime?
+  /// Raised when the password changes or access is removed, which logs out every session
+  tokenVersion   Int       @default(0)
+  failedLogins   Int       @default(0)
+  lockedUntil    DateTime?
+  lastLoginAt    DateTime?
+  joinedAt       DateTime  @default(now())
+  leftAt         DateTime?
+  /// Why they left (shown in Former Personnel)
+  leaveReason    String?
+  createdBy      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([department, status])
+}
+
+/// Everything done in the DES back-end, for the audit log.
+model DesAudit {
+  id        String   @id @default(uuid())
+  actorId   String?
+  action    String
+  target    String?
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId])
+}
+
+/// A person in the DES Criminal Database: an IN-GAME character, keyed to a Roblox account.
+/// Only in-game information is kept here, never real-world personal details.
+model DesSubject {
+  id             String    @id @default(uuid())
+  robloxUserId   String    @unique
+  robloxUsername String
+  /// Their in-game character name, if different from the username
+  characterName  String?
+  /// JSON array of in-game flags, e.g. ["armed","flight-risk"]
+  flags          String    @default("[]")
+  notes          String?
+  createdBy      String
+  removed        Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  records  DesRecord[]
+  warrants DesWarrant[]
+
+  @@index([robloxUsername])
+}
+
+/// One entry on a subject's record. kind: ARREST, CITATION, WARNING, NOTE
+model DesRecord {
+  id            String    @id @default(uuid())
+  subjectId     String
+  kind          String
+  /// JSON array of in-game charges
+  charges       String    @default("[]")
+  summary       String
+  location      String?
+  officerId     String
+  officerName   String
+  removed       Boolean   @default(false)
+  removedBy     String?
+  removedReason String?
+  createdAt     DateTime  @default(now())
+
+  subject DesSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@index([subjectId])
+  @@index([createdAt])
+}
+
+/// A warrant. status: ACTIVE, SERVED, RECALLED. danger: LOW, MEDIUM, HIGH.
+/// onWantedList puts an ACTIVE warrant on the public Most Wanted page.
+model DesWarrant {
+  id           String    @id @default(uuid())
+  number       String    @unique
+  subjectId    String
+  charges      String    @default("[]")
+  summary      String
+  danger       String    @default("MEDIUM")
+  status       String    @default("ACTIVE")
+  onWantedList Boolean   @default(false)
+  issuedBy     String
+  issuedByName String
+  issuedAt     DateTime  @default(now())
+  closedBy     String?
+  closedAt     DateTime?
+  closedNote   String?
+
+  subject DesSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@index([status, onWantedList])
+  @@index([subjectId])
+}
+
+/// A CAD incident (a call for service). priority 1 (most urgent) to 4.
+/// status: PENDING (no units yet), ACTIVE (units assigned), CLOSED.
+model DesIncident {
+  id          String    @id @default(uuid())
+  number      String    @unique
+  priority    Int       @default(3)
+  type        String
+  location    String
+  description String?
+  caller      String?
+  status      String    @default("PENDING")
+  disposition String?
+  subjects    String    @default("[]")
+  createdBy   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  closedAt    DateTime?
+
+  log   DesIncidentLog[]
+  units DesUnit[]
+
+  @@index([status])
+}
+
+/// One line in an incident's narrative. kind: NOTE, STATUS, ASSIGN, SYSTEM
+model DesIncidentLog {
+  id         String   @id @default(uuid())
+  incidentId String
+  kind       String   @default("NOTE")
+  text       String
+  actorName  String
+  createdAt  DateTime @default(now())
+
+  incident DesIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+  @@index([createdAt])
+}
+
+/// A unit on duty: one member under a callsign.
+/// status: AVAILABLE, ENROUTE, ONSCENE, BUSY, OOS (out of service)
+model DesUnit {
+  id         String    @id @default(uuid())
+  callsign   String    @unique
+  memberId   String    @unique
+  memberName String
+  department String
+  status     String    @default("AVAILABLE")
+  incidentId String?
+  since      DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  incident DesIncident? @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+}
+
+/// An OIA complaint or an OFI fire investigation.
+/// kind: OFFICER (complaint about an officer), DEPARTMENT (about a department), FIRE (OFI)
+/// status: NEW (received / reported), OPEN (being investigated), CLOSED, DISMISSED
+model DesCase {
+  id                 String    @id @default(uuid())
+  number             String    @unique
+  kind               String
+  status             String    @default("NEW")
+  department         String?
+  title              String
+  description        String
+  location           String?
+  occurredAt         String?
+  /// JSON array of evidence links
+  evidence           String    @default("[]")
+  /// What the person filing it typed about who's involved
+  accusedText        String?
+  /// The DES member the complaint is about, once matched
+  accusedMemberId    String?
+  accusedName        String?
+  /// JSON array of linked Criminal Database subject ids
+  subjects           String    @default("[]")
+  linkedCall         String?
+  submitterDiscordId String?
+  submitterName      String
+  internal           Boolean   @default(false)
+  assignedTo         String?
+  assignedName       String?
+  /// OFFICER/DEPARTMENT: the finding. FIRE: the cause.
+  finding            String?
+  /// What the person who filed it is told when it's closed
+  publicNote         String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  closedAt           DateTime?
+
+  log DesCaseLog[]
+
+  @@index([kind, status])
+  @@index([submitterDiscordId])
+  @@index([accusedMemberId])
+}
+
+/// One line in a case's internal log. kind: NOTE, STATUS, SYSTEM
+model DesCaseLog {
+  id        String   @id @default(uuid())
+  caseId    String
+  kind      String   @default("NOTE")
+  text      String
+  actorName String
+  createdAt DateTime @default(now())
+
+  case DesCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+}
+
+/// A notice on the DES back-end board. department null = everyone.
+model DesPost {
+  id         String   @id @default(uuid())
+  title      String
+  body       String
+  department String?
+  pinned     Boolean  @default(false)
+  authorId   String
+  authorName String
+  removed    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([removed, pinned, createdAt])
+}
+
+/// An application to join DES from the public form.
+/// status: PENDING, REVIEW (interview / being looked at), ACCEPTED, DECLINED, WITHDRAWN
+model DesApplication {
+  id             String    @id @default(uuid())
+  number         String    @unique
+  discordId      String
+  discordName    String
+  robloxUserId   String
+  robloxUsername String
+  department     String
+  /// JSON array of { q, a }
+  answers        String    @default("[]")
+  status         String    @default("PENDING")
+  publicNote     String?
+  reviewedBy     String?
+  reviewedName   String?
+  memberId       String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  decidedAt      DateTime?
+
+  log DesApplicationLog[]
+
+  @@index([status])
+  @@index([discordId])
+}
+
+/// One line in an application's internal log. kind: NOTE, STATUS, SYSTEM
+model DesApplicationLog {
+  id            String   @id @default(uuid())
+  applicationId String
+  kind          String   @default("NOTE")
+  text          String
+  actorName     String
+  createdAt     DateTime @default(now())
+
+  application DesApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+}
+
+/// A corporation. `data` is the full company record as JSON, in the same shape the
+/// game's CompanyService and CompanyDashboardService use (Ticker, Name, Holders, Members...).
+/// The other columns are copies for searching. Every change bumps `version` (so two
+/// writers can't overwrite each other) and `seq` (so game servers can fetch only what changed).
+/// state: PENDING (registered on Discord or the website, fee not paid yet), RAISING, LISTED, SUSPENDED
+model EconCompany {
+  ticker       String   @id
+  name         String
+  typeId       String
+  ownerId      String
+  state        String
+  data         String
+  version      Int      @default(1)
+  seq          Int      @default(0)
+  source       String   @default("GAME")
+  registeredBy String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([seq])
+  @@index([ownerId])
+  @@index([state])
+}
+
+/// A reserved ticker. Reserved before money moves, so two people can't claim one at once.
+model EconTicker {
+  ticker    String   @id
+  ownerId   String
+  name      String
+  createdAt DateTime @default(now())
+}
+
+/// A Roblox user's brokerage account: Y$ deposited from the game, used to trade on the website and Discord.
+model EconAccount {
+  robloxId  String   @id
+  cash      Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+/// Money movements one person sees in their History.
+/// kind: buy, sell, founded, deposit, withdraw, rejected. source: GAME, WEB, DISCORD
+model EconLedger {
+  id        Int      @id @default(autoincrement())
+  robloxId  String
+  kind      String
+  ticker    String?
+  name      String?
+  shares    Int      @default(0)
+  total     Int      @default(0)
+  source    String   @default("GAME")
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([robloxId, id])
+}
+
+/// Share price samples, in three tiers (fine ~1 min, hour, day) like the game's old PriceHistory.
+model EconPrice {
+  id     Int    @id @default(autoincrement())
+  ticker String
+  tier   String
+  t      Int
+  c      Float
+
+  @@index([ticker, tier, t])
+}
+
+/// The economy audit log (company created, listed, trades). Kept to the last few thousand.
+model EconLog {
+  id        Int      @id @default(autoincrement())
+  kind      String
+  ticker    String?
+  data      String
+  createdAt DateTime @default(now())
+}
+
+/// Counters, e.g. the change number game servers fetch from.
+model EconCounter {
+  id    String @id
+  value Int    @default(0)
+}
