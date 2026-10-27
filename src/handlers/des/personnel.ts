@@ -25,7 +25,7 @@ const db = () => (provider as any).db;
 const fail = (msg: string): Result => ({ ok: false, msg });
 const clean = (value: unknown, max: number) => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
 
-const LOCAL_GRANTABLE = [ 'officer', 'dispatcher', 'supervisor', 'oia', 'ofi' ];
+const LOCAL_GRANTABLE = [ 'officer', 'dispatcher', 'supervisor', 'oia', 'ofi', 'pio' ];
 const ADMIN_ROLES = [ 'local-admin', 'service-admin' ];
 
 const has = (m: any, ...roles: string[]) => parseRoles(m.roles).some((r) => roles.includes(r));
@@ -51,7 +51,7 @@ const canManage = (actor: any, target: any) => {
 
 const grantable = (actor: any) => isService(actor) ? Object.keys(DES_ROLES) : has(actor, 'local-admin') ? LOCAL_GRANTABLE : [];
 
-const checkRoles = (actor: any, roles: unknown): string[] | string => {
+export const checkRoles = (actor: any, roles: unknown): string[] | string => {
     if(!Array.isArray(roles)) return 'Pick at least one role.';
     const list = Array.from(new Set(roles.map((r) => String(r))));
     if(!list.length) return 'Pick at least one role.';

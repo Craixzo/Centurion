@@ -3,6 +3,9 @@ import { actorFrom, listPersonnel, getMember, addFromWeb, updateMember, removeFr
 import { searchSubjects, getSubject, addSubject, updateSubject, removeSubject, addRecord, removeRecord, issueWarrant, closeWarrant, setWarrantWanted, listWarrants } from './records';
 import { board, getIncident, createIncident, updateIncident, closeIncident, reopenIncident, addNote, linkSubject, goOnDuty, goOffDuty, setUnitStatus, assignUnit, clearUnit } from './cad';
 import { submitPublic, myPublic, listCases, getCase, createCase, updateCase, assignCase, setCaseStatus, addCaseNote, linkCaseSubject, caseCounts } from './cases';
+import { listPosts, createPost, updatePost, removePost, pinPost } from './posts';
+import { newsStatus, newsSetup, newsJoin, newsRemove } from './press';
+import { applyStatus, applySubmit, applyWithdraw, listApplications, getApplication, noteApplication, reviewApplication, declineApplication, acceptApplication, applicationCounts } from './applications';
 
 /**
  * DES routes. All of them sit after the API key check in api.ts, so only the
@@ -31,6 +34,11 @@ export const registerDesRoutes = (app: any) => {
     // Public complaint and fire report forms: the website checks the Discord login and passes the ID
     app.post('/des/public/report', handle('/des/public/report', true, (b) => submitPublic(String(b.discordId), b)));
     app.post('/des/public/mine', handle('/des/public/mine', true, (b) => myPublic(String(b.discordId))));
+
+    // Public application form (recruitment)
+    app.post('/des/public/apply-status', handle('/des/public/apply-status', true, (b) => applyStatus(String(b.discordId))));
+    app.post('/des/public/apply', handle('/des/public/apply', true, (b) => applySubmit(String(b.discordId), b)));
+    app.post('/des/public/apply-withdraw', handle('/des/public/apply-withdraw', true, (b) => applyWithdraw(String(b.discordId), b)));
 
     // Back-end actions: each checks the member's session first, then what their roles allow
     const ACTIONS: Record<string, (actor: any, body: any) => Promise<any>> = {
@@ -76,6 +84,26 @@ export const registerDesRoutes = (app: any) => {
         'case-note': addCaseNote,
         'case-link': linkCaseSubject,
         'case-counts': caseCounts,
+        'counts': async (actor: any) => {
+            const cases: any = await caseCounts(actor);
+            const apps = await applicationCounts(actor);
+            return { ok: true, data: { counts: { ... (cases.data?.counts || {}), ... (apps ? { APPLICATIONS: apps } : {}) } } };
+        },
+        'posts': listPosts,
+        'post-create': createPost,
+        'post-update': updatePost,
+        'post-remove': removePost,
+        'post-pin': pinPost,
+        'news-status': newsStatus,
+        'news-setup': newsSetup,
+        'news-join': newsJoin,
+        'news-remove': newsRemove,
+        'applications': listApplications,
+        'application': getApplication,
+        'app-note': noteApplication,
+        'app-review': reviewApplication,
+        'app-decline': declineApplication,
+        'app-accept': acceptApplication,
     };
     app.post('/des/manage/:action', async (req: any, res: any) => {
         try {

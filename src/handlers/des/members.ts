@@ -1,6 +1,7 @@
 import { provider } from '../../database';
 import { DES_SETTINGS, DES_ROLES } from './settings';
 import { audit, parseRoles, Result } from './auth';
+import { dropWriter } from './press';
 
 /**
  * Adding and removing DES members: the /des-add and /des-remove commands,
@@ -64,5 +65,6 @@ export const removeMember = async (actorDiscordId: string, badgeIdRaw: unknown, 
     if(!member || member.status === 'FORMER') return fail(`There's no active member with Badge ID **${badgeId}**.`);
     const updated = await db().desMember.update({ where: { id: member.id }, data: { status: 'FORMER', leftAt: new Date(), leaveReason: reason ? clean(reason, 300) : null, tokenVersion: member.tokenVersion + 1 } });
     await audit(actorDiscordId, 'Member removed', badgeId, `${member.robloxUsername}${reason ? ` · ${clean(reason, 200)}` : ''}`);
+    await dropWriter(member.discordId);
     return { ok: true, data: { member: updated } };
 }

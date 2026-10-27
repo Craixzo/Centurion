@@ -38,6 +38,35 @@ export const DES_SETTINGS = {
     /** Public forms: most submissions one Discord account can make per day, and have open at once. */
     maxReportsPerDay: 3,
     maxOpenReports: 5,
+
+    /** DES News: the Yellonia News outlet DES posts to (its address name). The Emergency Services page reads this outlet. */
+    newsOutletSlug: 'department-of-emergency-services',
+    newsOutletName: 'Department of Emergency Services',
+
+    /** Recruitment: which departments are taking applications right now. */
+    applicationsOpen: { POLICE: true, FIRE: true } as Record<string, boolean>,
+
+    /** Recruitment: the questions on the application form. "all" is asked for every department. Keep each under 200 characters. */
+    applicationQuestions: {
+        all: [
+            'How old are you?',
+            'What time zone are you in, and when are you usually active?',
+            'Why do you want to join?',
+            'Have you been in a roleplay police or fire department before? Tell us about it.',
+        ],
+        POLICE: [
+            'A driver refuses to stop for you. What do you do?',
+        ],
+        FIRE: [
+            'You arrive first at a house fire with people inside. What do you do?',
+        ],
+    } as Record<string, string[]>,
+
+    /** Recruitment: days before someone whose application was declined can apply again. */
+    reapplyDays: 14,
+
+    /** Recruitment: Discord channel told when a new application comes in (number and department only). '' for none. */
+    recruitmentChannelId: '',
 };
 
 /** Every role, from least to most access. A member can hold several. */
@@ -47,6 +76,7 @@ export const DES_ROLES: Record<string, string> = {
     'supervisor': 'Supervisor',
     'oia': 'Office of Internal Affairs',
     'ofi': 'Office of Fire Investigations',
+    'pio': 'Public Information Officer',
     'local-admin': 'Local Admin',
     'service-admin': 'Service Admin',
 };
