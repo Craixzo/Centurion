@@ -126,7 +126,7 @@ export const config: BotConfig = {
 
     accountLinks: {
         provider: 'rowifi',
-        guildId: '',
+        guildId: '737823381218525184',
         useDenylist: true,
     },
 
