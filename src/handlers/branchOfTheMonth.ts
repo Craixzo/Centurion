@@ -44,7 +44,7 @@ const CHANNEL_BRANCHES: Record<string, string> = {
 const ANNOUNCE_CHANNEL_ID = '';
 
 /** Role given to every member of the winning branch for the month. Leave '' to skip. Must be below Centurion's own role. */
-const WINNER_ROLE_ID = '';
+const WINNER_ROLE_ID = '1566229204369154158';
 
 /** First month that is scored. Earlier months are never decided automatically. */
 const FIRST_MONTH = '2026-10';
