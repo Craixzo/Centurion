@@ -21,6 +21,12 @@ class BotmSetCommand extends Command {
                     choices: branchChoices(),
                 },
                 {
+                    trigger: 'events',
+                    description: 'How many events the winner hosted. Leave empty to keep the counted number.',
+                    required: false,
+                    type: 'Number',
+                },
+                {
                     trigger: 'month',
                     description: 'The month, as YYYY-MM (e.g. 2026-10). Defaults to last month.',
                     required: false,
@@ -45,12 +51,23 @@ class BotmSetCommand extends Command {
                 ] });
             }
 
-            const result = await overrideMonth(month, String(ctx.args['branch']));
+            const rawEvents = ctx.args['events'];
+            const events = rawEvents === undefined || rawEvents === null || rawEvents === '' ? undefined : Number(rawEvents);
+            if(events !== undefined && (!Number.isInteger(events) || events < 0)) {
+                return ctx.reply({ embeds: [
+                    new EmbedBuilder()
+                        .setColor(redColor)
+                        .setAuthor({ name: 'Not Changed', iconURL: xmarkIconUrl })
+                        .setDescription('Events must be a whole number, 0 or more.'),
+                ] });
+            }
+
+            const result = await overrideMonth(month, String(ctx.args['branch']), events);
             return ctx.reply({ embeds: [
                 new EmbedBuilder()
                     .setColor(greenColor)
                     .setAuthor({ name: 'Branch of the Month Set', iconURL: checkIconUrl })
-                    .setDescription(`**${result.winners[0].name}** is the Branch of the Month for ${monthLabel(month)}. The website updates within a minute.`),
+                    .setDescription(`**${result.winners[0].name}** is the Branch of the Month for ${monthLabel(month)} with **${result.winners[0].count}** event${result.winners[0].count === 1 ? '' : 's'} hosted. The website updates within a minute.`),
             ] });
         } catch (err) {
             console.error('[botm-set]', err);
