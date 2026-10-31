@@ -23,7 +23,7 @@ export const SITE_SETTINGS = {
     modmailChannelId: '',
 
     /** Modmail: a role pinged when a new conversation starts. '' for none. */
-    modmailPingRoleId: '',
+    modmailPingRoleId: '1453198303545135286',
 
     /** Modmail: staff messages in a thread that start with this stay internal (not sent to the person). */
     modmailNotePrefix: '//',
