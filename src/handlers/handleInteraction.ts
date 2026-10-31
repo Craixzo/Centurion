@@ -13,6 +13,7 @@ import { getUnknownCommandMessage, getNoPermissionEmbed } from '../handlers/loca
 import { handleEventType } from '../arguments/handleEventType';
 import { handleRecruitmentComponent } from './recruitment/interactions';
 import { handleNewsComponent, handleNewsModal } from './news/interactions';
+import { handleModmailComponent } from './site/modmail';
 
 const handleInteraction = async (payload: Interaction<CacheType>) => {
     if(payload instanceof CommandInteraction) {
@@ -47,6 +48,8 @@ const handleInteraction = async (payload: Interaction<CacheType>) => {
         await handleRecruitmentComponent(payload);
     } else if(payload.isMessageComponent() && payload.customId.startsWith('news:')) {
         await handleNewsComponent(payload);
+    } else if(payload.isMessageComponent() && payload.customId.startsWith('modmail:')) {
+        await handleModmailComponent(payload);
     } else if(payload.isModalSubmit() && payload.customId.startsWith('news:')) {
         await handleNewsModal(payload);
     }
