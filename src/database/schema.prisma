@@ -585,3 +585,111 @@ model EconCounter {
   id    String @id
   value Int    @default(0)
 }
+
+/// A modmail conversation between someone and Yellonia staff. status: OPEN, CLOSED.
+/// lastFrom: USER or STAFF (who wrote last, so staff can see who's waiting).
+model ModmailThread {
+  id          String    @id @default(uuid())
+  number      String    @unique
+  discordId   String
+  discordName String
+  subject     String
+  status      String    @default("OPEN")
+  lastFrom    String    @default("USER")
+  channelId   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  closedAt    DateTime?
+
+  messages ModmailMessage[]
+
+  @@index([discordId])
+  @@index([status])
+}
+
+/// One message in a modmail conversation. internal = staff-only note. source: DISCORD, WEB, SYSTEM
+model ModmailMessage {
+  id         String   @id @default(uuid())
+  threadId   String
+  fromStaff  Boolean  @default(false)
+  internal   Boolean  @default(false)
+  authorId   String
+  authorName String
+  body       String
+  source     String   @default("WEB")
+  createdAt  DateTime @default(now())
+
+  thread ModmailThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+}
+
+/// A job board listing. status: OPEN, CLOSED, REMOVED (by staff).
+model JobListing {
+  id           String    @id @default(uuid())
+  title        String
+  organisation String
+  category     String
+  description  String
+  requirements String?
+  applyOnSite  Boolean   @default(true)
+  howToApply   String?
+  status       String    @default("OPEN")
+  postedBy     String
+  postedName   String
+  closesAt     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([status])
+  @@index([postedBy])
+}
+
+/// An application to a job listing. status: PENDING, ACCEPTED, DECLINED, WITHDRAWN
+model JobApplication {
+  id             String    @id @default(uuid())
+  listingId      String
+  discordId      String
+  discordName    String
+  robloxUsername String
+  robloxUserId   String
+  message        String
+  status         String    @default("PENDING")
+  note           String?
+  createdAt      DateTime  @default(now())
+  decidedAt      DateTime?
+
+  @@index([listingId])
+  @@index([discordId])
+}
+
+/// An official document (the Constitution, laws, decrees...). status: PUBLISHED, DRAFT
+model SiteDocument {
+  id            String    @id @default(uuid())
+  slug          String    @unique
+  title         String
+  category      String
+  summary       String?
+  body          String
+  effectiveDate String?
+  status        String    @default("DRAFT")
+  updatedBy     String
+  updatedName   String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  publishedAt   DateTime?
+
+  @@index([status])
+}
+
+/// What staff did in the staff area.
+model SiteAudit {
+  id        String   @id @default(uuid())
+  actorId   String
+  actorName String
+  action    String
+  detail    String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
