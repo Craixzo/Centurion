@@ -6,13 +6,13 @@
  */
 export const SITE_SETTINGS = {
     /** Staff: can log in to the staff area (staff.html), answer modmail, and remove job listings. */
-    staffRoleIds: [ '' ],
+    staffRoleIds: [ '1453198303545135286' ],
 
     /** Site admins: everything staff can do, plus writing and publishing official documents. Centurion admins count too. */
-    adminRoleIds: [ '' ],
+    adminRoleIds: [ '847534222138540072' ],
 
     /** Job board: who can post listings (officers). Staff and admins can always post. */
-    jobOfficerRoleIds: [ '' ],
+    jobOfficerRoleIds: [ '1056133660954337280', '1330230174641422376', '1313684886074167386' ],
 
     /**
      * Modmail: the text channel where each conversation becomes a thread.
