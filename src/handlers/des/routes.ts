@@ -5,6 +5,7 @@ import { board, getIncident, createIncident, updateIncident, closeIncident, reop
 import { submitPublic, myPublic, listCases, getCase, createCase, updateCase, assignCase, setCaseStatus, addCaseNote, linkCaseSubject, caseCounts } from './cases';
 import { listPosts, createPost, updatePost, removePost, pinPost } from './posts';
 import { newsStatus, newsSetup, newsJoin, newsRemove } from './press';
+import { submitCrime, myCrimes } from './crime';
 import { applyStatus, applySubmit, applyWithdraw, listApplications, getApplication, noteApplication, reviewApplication, declineApplication, acceptApplication, applicationCounts } from './applications';
 
 /**
@@ -34,6 +35,10 @@ export const registerDesRoutes = (app: any) => {
     // Public complaint and fire report forms: the website checks the Discord login and passes the ID
     app.post('/des/public/report', handle('/des/public/report', true, (b) => submitPublic(String(b.discordId), b)));
     app.post('/des/public/mine', handle('/des/public/mine', true, (b) => myPublic(String(b.discordId))));
+
+    // Crime reports: become pending police calls on the CAD board
+    app.post('/des/public/crime', handle('/des/public/crime', true, (b) => submitCrime(String(b.discordId), b)));
+    app.post('/des/public/crime-mine', handle('/des/public/crime-mine', true, (b) => myCrimes(String(b.discordId))));
 
     // Public application form (recruitment)
     app.post('/des/public/apply-status', handle('/des/public/apply-status', true, (b) => applyStatus(String(b.discordId))));
