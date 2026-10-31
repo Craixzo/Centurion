@@ -7,6 +7,7 @@ import { getGroupIdForGuild } from './handlers/groupResolver';
 import ms from 'ms';
 import { findEligibleRole } from './handlers/handleXpRankup';
 import { getParliamentResponse } from './handlers/parliament';
+import { getBotmResponse } from './handlers/branchOfTheMonth';
 import { getLegislationResponse } from './handlers/legislation';
 import { getWantedList } from './handlers/des/records';
 import { registerDesRoutes } from './handlers/des/routes';
@@ -81,6 +82,20 @@ app.get('/parliament', async (req, res) => {
     } catch (err) {
         console.error('[api] /parliament', err);
         return res.status(500).json({ success: false, msg: 'Could not load Parliament seats.' });
+    }
+});
+
+/**
+ * Public, read-only. The website reads this for the Branch of the Month
+ * banner, unit badge and Hall of Fame. Only branch names and event counts.
+ */
+app.get('/branch-of-the-month', async (req, res) => {
+    try {
+        res.set('Cache-Control', 'public, max-age=60');
+        return res.json(await getBotmResponse());
+    } catch (err) {
+        console.error('[api] /branch-of-the-month', err);
+        return res.status(500).json({ success: false, msg: 'Could not load Branch of the Month.' });
     }
 });
 
