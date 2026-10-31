@@ -22,7 +22,7 @@ class BotmSetCommand extends Command {
                 },
                 {
                     trigger: 'events',
-                    description: 'How many events the winner hosted. Leave empty to keep the counted number.',
+                    description: 'How many events the winner hosted. Leave empty to use their current count.',
                     required: false,
                     type: 'Number',
                 },
