@@ -17,6 +17,7 @@ import registerServerTag from './events/serverTag';
 import registerQuotaStrikes from './events/quotaStrikes';
 import { registerEventReactions } from './handlers/events';
 import registerRecruitment from './events/recruitment';
+import registerModmail from './events/modmail';
 import registerManualEvents from './events/manualEvents';
 import { registerDiscordPerks } from './handlers/discordPerks';
 require('dotenv').config();
@@ -57,6 +58,7 @@ registerServerTag(discordClient);
 registerQuotaStrikes(discordClient);
 registerEventReactions(discordClient);
 registerRecruitment(discordClient);
+registerModmail(discordClient);
 registerManualEvents(discordClient);
 registerDiscordPerks(discordClient);
 

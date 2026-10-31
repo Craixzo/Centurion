@@ -14,6 +14,7 @@ import { checkRankSkip, describeBlocked } from './handlers/rankSkip';
 import { getDiscordPerks } from './handlers/discordPerks';
 import { registerNewsRoutes, registerNewsManageRoutes } from './handlers/news/routes';
 import { registerEconomyRoutes } from './handlers/economy/routes';
+import { registerSiteRoutes } from './handlers/site/routes';
 import { startEconomy } from './handlers/economy/market';
 
 /**
@@ -160,6 +161,9 @@ if(config.api) {
 
     // Corporations and the stock market: the game servers and the website (see handlers/economy/routes.ts).
     registerEconomyRoutes(app);
+
+    // Staff area, modmail, job board and official documents (see handlers/site/routes.ts).
+    registerSiteRoutes(app);
 
     app.get('/user', async (req, res) => {
         const robloxGroup = await groupFromRequest(req);
