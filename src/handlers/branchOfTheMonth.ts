@@ -314,11 +314,20 @@ export const decideMonth = async (key: string): Promise<MonthResult> => {
     return result;
 };
 
-/** Admin override: sets a month's winner by hand (tie-break, dispute). */
-export const overrideMonth = async (key: string, branchKey: string): Promise<MonthResult> => {
+/**
+ * Admin override: sets a month's winner by hand (tie-break, dispute).
+ * Pass eventCount to also set how many events the winner is shown as hosting.
+ */
+export const overrideMonth = async (key: string, branchKey: string, eventCount?: number): Promise<MonthResult> => {
     const stored = await load();
     const standings = await getStandings(key);
-    const winner = standings.find((entry) => entry.key === branchKey) || { key: branchKey, name: branchName(branchKey), count: 0 };
+    let winner = standings.find((entry) => entry.key === branchKey);
+    if(!winner) {
+        winner = { key: branchKey, name: branchName(branchKey), count: 0 };
+        standings.push(winner);
+    }
+    if(eventCount !== undefined) winner.count = eventCount;
+    standings.sort((a, b) => b.count - a.count);
     const result: MonthResult = { month: key, winners: [ winner ], standings, decidedAt: new Date().toISOString(), overridden: true };
 
     stored.history = stored.history.filter((entry) => entry.month !== key);
@@ -331,7 +340,7 @@ export const overrideMonth = async (key: string, branchKey: string): Promise<Mon
             .then(() => congratulateOfficers(result))
             .catch((err) => console.error('[botm] override perks failed', err));
     }
-    logAction('Branch of the Month' as any, botClient?.user as any, `${monthLabel(key)} set to ${winner.name}`);
+    logAction('Branch of the Month' as any, botClient?.user as any, `${monthLabel(key)} set to ${winner.name} (${winner.count} events)`);
     return result;
 };
 
