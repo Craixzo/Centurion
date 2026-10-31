@@ -3,7 +3,7 @@ import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
 import { config } from '../../config';
 import { checkIconUrl, xmarkIconUrl, greenColor, redColor, getUnexpectedErrorEmbed } from '../../handlers/locale';
-import { branchChoices, isMonthKey, monthKeyOf, monthLabel, overrideMonth, previousMonthKey } from '../../handlers/branchOfTheMonth';
+import { branchChoices, isMonthKey, monthKeyOf, monthLabel, overrideMonth } from '../../handlers/branchOfTheMonth';
 
 class BotmSetCommand extends Command {
     constructor() {
@@ -28,7 +28,7 @@ class BotmSetCommand extends Command {
                 },
                 {
                     trigger: 'month',
-                    description: 'The month, as YYYY-MM (e.g. 2026-10). Defaults to last month.',
+                    description: 'The month, as YYYY-MM (e.g. 2026-10). Defaults to this month.',
                     required: false,
                     type: 'String',
                 },
@@ -41,13 +41,13 @@ class BotmSetCommand extends Command {
 
     async run(ctx: CommandContext) {
         try {
-            const month = ctx.args['month'] ? String(ctx.args['month']).trim() : previousMonthKey(monthKeyOf());
-            if(!isMonthKey(month) || month >= monthKeyOf()) {
+            const month = ctx.args['month'] ? String(ctx.args['month']).trim() : monthKeyOf();
+            if(!isMonthKey(month) || month > monthKeyOf()) {
                 return ctx.reply({ embeds: [
                     new EmbedBuilder()
                         .setColor(redColor)
                         .setAuthor({ name: 'Not Changed', iconURL: xmarkIconUrl })
-                        .setDescription('The month must be a finished month written as `YYYY-MM`, like `2026-10`.'),
+                        .setDescription('The month must be this month or an earlier one, written as `YYYY-MM`, like `2026-10`.'),
                 ] });
             }
 
