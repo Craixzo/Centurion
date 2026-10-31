@@ -2,7 +2,7 @@ import { EmbedBuilder } from 'discord.js';
 import { CommandContext } from '../../structures/addons/CommandAddons';
 import { Command } from '../../structures/Command';
 import { mainColor, getUnexpectedErrorEmbed } from '../../handlers/locale';
-import { getHolder, getStandings, monthKeyOf, monthLabel } from '../../handlers/branchOfTheMonth';
+import { getHolder, getMode, getShownStandings, monthKeyOf, monthLabel } from '../../handlers/branchOfTheMonth';
 
 class BotmCommand extends Command {
     constructor() {
@@ -19,7 +19,8 @@ class BotmCommand extends Command {
     async run(ctx: CommandContext) {
         try {
             const current = monthKeyOf();
-            const [ holder, standings ] = await Promise.all([ getHolder(), getStandings(current) ]);
+            const [ holder, shown ] = await Promise.all([ getHolder(), getShownStandings(current) ]);
+            const standings = shown.standings;
 
             const leader = standings[0]?.count || 0;
             const lines = standings.map((entry, index) => {
@@ -34,11 +35,13 @@ class BotmCommand extends Command {
             const embed = new EmbedBuilder()
                 .setColor(mainColor)
                 .setTitle('Branch of the Month')
-                .addFields(
-                    { name: 'Current holder', value: holderText, inline: false },
-                    { name: `${monthLabel(current)} so far`, value: lines.join('\n') || 'No branches configured.', inline: false },
-                )
-                .setFooter({ text: 'Scored on events hosted. The month closes at midnight on the 1st.' });
+                .addFields({ name: 'Current holder', value: holderText, inline: false });
+            // Manual mode has no live count, so the standings field only shows once a month is set.
+            if(lines.length) embed.addFields({ name: `${monthLabel(current)} ${shown.decided ? '(final)' : 'so far'}`, value: lines.join('\n'), inline: false });
+            if(!lines.length) embed.addFields({ name: `${monthLabel(current)} so far`, value: 'No events logged yet.', inline: false });
+            embed.setFooter({ text: await getMode() === 'automatic'
+                ? 'Automatic: events are counted and the month closes at midnight on the 1st.'
+                : 'Manual: events are logged by staff and the winner is set by hand.' });
 
             return ctx.reply({ embeds: [ embed ] });
         } catch (err) {
