@@ -49,6 +49,9 @@ const WINNER_ROLE_ID = '';
 /** First month that is scored. Earlier months are never decided automatically. */
 const FIRST_MONTH = '2026-10';
 
+/** DM the winning branch's officers (config.recruitment.branches officerRoleIds) when a winner is set. */
+const CONGRATULATE_OFFICERS = true;
+
 /** How often Centurion checks whether a month has ended. */
 const CHECK_EVERY_MS = 10 * 60 * 1000;
 
@@ -81,7 +84,12 @@ interface Stored {
 const scoredBranches = () =>
     ((config as any).recruitment?.branches || [])
         .filter((branch: any) => !branch.general)
-        .map((branch: any) => ({ key: String(branch.key), name: String(branch.name), roleId: String(branch.roleId || '') }));
+        .map((branch: any) => ({
+            key: String(branch.key),
+            name: String(branch.name),
+            roleId: String(branch.roleId || ''),
+            officerRoleIds: ((branch.officerRoleIds || []) as string[]).filter(Boolean),
+        }));
 
 export const branchChoices = () => scoredBranches().map((branch: any) => ({ name: branch.name, value: branch.key }));
 
@@ -252,6 +260,38 @@ const announce = async (result: MonthResult) => {
     }
 };
 
+/** DMs every officer of the winning branches, once each. Officer roles are looked up in the officer server and the main server. */
+const congratulateOfficers = async (result: MonthResult) => {
+    if(!CONGRATULATE_OFFICERS || !botClient || !result.winners.length) return;
+    const recruitment = (config as any).recruitment || {};
+    const guilds = [ recruitment.officerGuildId, recruitment.guildId ]
+        .map((id: string) => id && botClient!.guilds.cache.get(id))
+        .filter(Boolean) as Guild[];
+
+    const sent = new Set<string>();
+    for(const winner of result.winners) {
+        const branch = scoredBranches().find((entry: any) => entry.key === winner.key);
+        if(!branch || !branch.officerRoleIds.length) continue;
+
+        const embed = new EmbedBuilder()
+            .setColor(mainColor)
+            .setTitle(`Congratulations - Branch of the Month`)
+            .setDescription(`**${branch.name}** is the Branch of the Month for **${monthLabel(result.month)}**${winner.count ? ` with **${winner.count}** event${winner.count === 1 ? '' : 's'} hosted` : ''}.\n\nThank you for keeping your branch active. Keep the events coming to hold the title next month.`);
+        if(config.notificationFooter) embed.setFooter({ text: config.notificationFooter });
+
+        for(const guild of guilds) {
+            for(const member of guild.members.cache.values()) {
+                if(member.user.bot || sent.has(member.id)) continue;
+                if(!branch.officerRoleIds.some((id: string) => member.roles.cache.has(id))) continue;
+                sent.add(member.id);
+                await member.send({ embeds: [ embed ] }).catch(() => { /* DMs closed */ });
+                await new Promise((resolve) => setTimeout(resolve, 1000));   // stay well under Discord's DM rate limit
+            }
+        }
+    }
+    console.log(`[botm] congratulated ${sent.size} officer(s) for ${result.month}`);
+};
+
 /* ---------- DECIDING A MONTH ---------- */
 
 /** Scores and saves a finished month. Returns the result, or the existing one if it was already decided. */
@@ -269,6 +309,7 @@ export const decideMonth = async (key: string): Promise<MonthResult> => {
     if(isLatest) {
         await announce(result);
         await applyWinnerRole(result.winners);
+        await congratulateOfficers(result);
     }
     return result;
 };
@@ -284,7 +325,12 @@ export const overrideMonth = async (key: string, branchKey: string): Promise<Mon
     stored.history.push(result);
     await save(stored);
 
-    if(stored.history[0]?.month === key) await applyWinnerRole(result.winners);
+    // Runs in the background so /botm-set can reply before Discord's 3-second limit.
+    if(stored.history[0]?.month === key) {
+        applyWinnerRole(result.winners)
+            .then(() => congratulateOfficers(result))
+            .catch((err) => console.error('[botm] override perks failed', err));
+    }
     logAction('Branch of the Month' as any, botClient?.user as any, `${monthLabel(key)} set to ${winner.name}`);
     return result;
 };
