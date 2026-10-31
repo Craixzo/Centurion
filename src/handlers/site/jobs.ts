@@ -79,7 +79,8 @@ export const getJob = async (input: any, discordId: string | null): Promise<Resu
     const l = await db().jobListing.findUnique({ where: { id: clean(input.id, 64) } });
     if(!l || l.status === 'REMOVED') return fail('That listing doesn\'t exist.');
     const mine = discordId ? await db().jobApplication.findFirst({ where: { listingId: l.id, discordId } }) : null;
-    return { ok: true, data: { listing: listingView(l, { yours: discordId === l.postedBy }), application: mine ? appView(mine, false) : null } };
+    const applicants = await db().jobApplication.count({ where: { listingId: l.id, status: { not: 'WITHDRAWN' } } });
+    return { ok: true, data: { listing: listingView(l, { yours: discordId === l.postedBy, applicants }), application: mine ? appView(mine, false) : null } };
 };
 
 // ---------------------------------------------------------------- logged in
