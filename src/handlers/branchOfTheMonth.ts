@@ -25,6 +25,16 @@ import { logAction } from './handleLogging';
 
 /* ---------- SETTINGS ---------- */
 
+/**
+ * Mode the bot starts in until an admin changes it with /botm-mode
+ * (the choice is saved, so it survives restarts).
+ *   'manual'    - nothing is counted from event channels and nothing is decided on its own.
+ *                 Staff log events with /botm-add and pick the winner with /botm-set.
+ *   'automatic' - events Centurion records are counted, and the month is decided at
+ *                 midnight on the 1st. /botm-add still works, as a correction on top.
+ */
+const DEFAULT_MODE: BotmMode = 'manual';
+
 /** Channel ID -> branch key. Keys must match config.recruitment.branches. */
 const CHANNEL_BRANCHES: Record<string, string> = {
     '911767148161040404': 'army',       // Army: Events Schedule
@@ -60,6 +70,8 @@ const CACHE_MS = 60_000;
 const HISTORY_LIMIT = 60;   // months kept
 
 /* ---------- TYPES ---------- */
+
+export type BotmMode = 'manual' | 'automatic';
 
 export interface BranchScore {
     key: string;
@@ -149,6 +161,57 @@ const monthRange = (key: string) => {
     return { from: monthStart(year, month), to: monthStart(year, month + 1) };
 };
 
+/* ---------- MODE AND MANUAL TALLY (meta store) ---------- */
+
+const MODE_KEY = 'branchOfTheMonthMode';
+const TALLY_KEY = 'branchOfTheMonthTally';
+
+let modeCache: BotmMode | null = null;
+
+export const getMode = async (): Promise<BotmMode> => {
+    if(modeCache) return modeCache;
+    const stored = await provider.getMeta(MODE_KEY).catch((): null => null);
+    modeCache = stored === 'automatic' || stored === 'manual' ? stored : DEFAULT_MODE;
+    return modeCache;
+};
+
+export const setMode = async (mode: BotmMode) => {
+    await provider.setMeta(MODE_KEY, mode);
+    modeCache = mode;
+    cached = null;
+};
+
+/** month -> branch key -> events logged by hand. */
+type Tally = Record<string, Record<string, number>>;
+
+const loadTally = async (): Promise<Tally> => {
+    try {
+        const raw = await provider.getMeta(TALLY_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if(parsed && typeof parsed === 'object') return parsed;
+    } catch (err) {
+        console.error('[botm] could not read the manual tally', err);
+    }
+    return {};
+};
+
+/** Adds (or with a negative amount, removes) hand-logged events. Never goes below 0. Returns the new total. */
+export const addToTally = async (key: string, branchKey: string, amount: number): Promise<number> => {
+    const tally = await loadTally();
+    const month = tally[key] || (tally[key] = {});
+    month[branchKey] = Math.max(0, (month[branchKey] || 0) + amount);
+    // Keep the last 12 months only.
+    for(const old of Object.keys(tally).sort().slice(0, -12)) delete tally[old];
+    await provider.setMeta(TALLY_KEY, JSON.stringify(tally));
+    cached = null;
+    return month[branchKey];
+};
+
+/** True once any branch has a hand-logged event this month. */
+const hasTally = async (key: string) => Object.values((await loadTally())[key] || {}).some((count) => count > 0);
+
+export const isMonthDecided = async (key: string) => (await load()).history.some((entry) => entry.month === key);
+
 /* ---------- SCORING ---------- */
 
 const db = () => (provider as any).db;
@@ -168,24 +231,74 @@ const branchOfHost = (hostId: string): string | null => {
     return branch ? branch.key : null;
 };
 
-/** Event counts per branch for a month, highest first. Every branch is listed, even at 0. */
+/**
+ * Event counts per branch for a month, highest first. Every branch is listed, even at 0.
+ * Manual mode: only hand-logged events. Automatic: recorded events plus hand-logged ones.
+ */
 export const getStandings = async (key: string): Promise<BranchScore[]> => {
-    const { from, to } = monthRange(key);
-    const events: { channelId: string; hostId: string }[] = await db().event.findMany({
-        where: { createdAt: { gte: from, lt: to } },
-        select: { channelId: true, hostId: true },
-    });
+    const counts: Record<string, number> = { ... ((await loadTally())[key] || {}) };
 
-    const counts: Record<string, number> = {};
-    for(const event of events) {
-        const branch = CHANNEL_BRANCHES[event.channelId] || branchOfHost(event.hostId);
-        if(branch) counts[branch] = (counts[branch] || 0) + 1;
+    if(await getMode() === 'automatic') {
+        const { from, to } = monthRange(key);
+        const events: { channelId: string; hostId: string }[] = await db().event.findMany({
+            where: { createdAt: { gte: from, lt: to } },
+            select: { channelId: true, hostId: true },
+        });
+        for(const event of events) {
+            const branch = CHANNEL_BRANCHES[event.channelId] || branchOfHost(event.hostId);
+            if(branch) counts[branch] = (counts[branch] || 0) + 1;
+        }
     }
 
     return scoredBranches()
         .map((branch: any) => ({ key: branch.key, name: branch.name, count: counts[branch.key] || 0 }))
         .sort((a: BranchScore, b: BranchScore) => b.count - a.count);
 };
+
+/**
+ * Standings to show for a month: the saved result once the month has been
+ * decided (including one set early with /botm-set), otherwise the live count.
+ */
+export const getShownStandings = async (key: string): Promise<{ standings: BranchScore[]; decided: boolean }> => {
+    const saved = (await load()).history.find((entry) => entry.month === key);
+    if(saved) return { standings: saved.standings, decided: true };
+    // Manual mode with nothing logged yet: show nothing rather than a row of zeros.
+    if(await getMode() === 'manual' && !(await hasTally(key))) return { standings: [], decided: false };
+    return { standings: await getStandings(key), decided: false };
+};
+
+export interface EventCredit {
+    title: string;
+    channelId: string;
+    hostId: string;
+    createdAt: Date;
+    branch: string | null;           // branch key, or null if uncounted
+    reason: 'channel' | 'host role' | 'uncounted';
+}
+
+/** Every event in a month and which branch it was credited to - for /botm-check. */
+export const getEventCredits = async (key: string): Promise<EventCredit[]> => {
+    const { from, to } = monthRange(key);
+    const events: any[] = await db().event.findMany({
+        where: { createdAt: { gte: from, lt: to } },
+        select: { title: true, channelId: true, hostId: true, createdAt: true },
+        orderBy: { createdAt: 'asc' },
+    });
+    return events.map((event) => {
+        const byChannel = CHANNEL_BRANCHES[event.channelId];
+        const byHost = byChannel ? null : branchOfHost(event.hostId);
+        return {
+            title: event.title,
+            channelId: event.channelId,
+            hostId: event.hostId,
+            createdAt: event.createdAt,
+            branch: byChannel || byHost,
+            reason: byChannel ? 'channel' : byHost ? 'host role' : 'uncounted',
+        };
+    });
+};
+
+export { branchName };
 
 const topOf = (standings: BranchScore[]) => {
     const best = standings[0]?.count || 0;
@@ -317,7 +430,8 @@ export const decideMonth = async (key: string): Promise<MonthResult> => {
 /**
  * Admin override: sets a month's winner by hand (tie-break, dispute, or early,
  * before the month ends). A month set early is not re-scored when it closes.
- * Pass eventCount to also set how many events the winner is shown as hosting.
+ * Pass eventCount to also set how many events the winner is shown as hosting;
+ * otherwise the winner's current count (logged and/or recorded) is used.
  */
 export const overrideMonth = async (key: string, branchKey: string, eventCount?: number): Promise<MonthResult> => {
     const stored = await load();
@@ -347,6 +461,7 @@ export const overrideMonth = async (key: string, branchKey: string, eventCount?:
 };
 
 const checkMonthEnd = async () => {
+    if(await getMode() !== 'automatic') return;   // manual mode never decides on its own
     const last = previousMonthKey(monthKeyOf());
     if(last < FIRST_MONTH) return;
     const stored = await load();
@@ -362,12 +477,13 @@ let cached: { at: number; body: any } | null = null;
 export const getBotmResponse = async () => {
     if(cached && Date.now() - cached.at < CACHE_MS) return cached.body;
     const current = monthKeyOf();
-    const [ history, standings ] = await Promise.all([ getHistory(), getStandings(current) ]);
+    const [ history, shown ] = await Promise.all([ getHistory(), getShownStandings(current) ]);
     const withLabel = (entry: MonthResult) => ({ month: entry.month, label: monthLabel(entry.month), winners: entry.winners, standings: entry.standings });
     const body = {
         success: true,
         holder: history[0] ? withLabel(history[0]) : null,
-        current: { month: current, label: monthLabel(current), standings },
+        mode: await getMode(),
+        current: { month: current, label: monthLabel(current), standings: shown.standings, decided: shown.decided },
         history: history.map(withLabel),
     };
     cached = { at: Date.now(), body };
@@ -379,7 +495,8 @@ export const getBotmResponse = async () => {
 export const registerBranchOfTheMonth = (client: Client) => {
     botClient = client;
     const run = () => checkMonthEnd().catch((err) => console.error('[botm] month check failed', err));
-    // Wait until main.ts has cached members, so host roles resolve.
+    // Always scheduled; checkMonthEnd does nothing while the mode is manual.
+    // First run waits until main.ts has cached members, so host roles resolve.
     client.once('ready', () => setTimeout(run, 60_000));
     setInterval(run, CHECK_EVERY_MS);
 };
