@@ -17,7 +17,7 @@ class BotmModeCommand extends Command {
             args: [
                 {
                     trigger: 'mode',
-                    description: 'Manual: you log events and pick the winner. Automatic: events are counted and the month closes itself.',
+                    description: 'Manual: you log events and pick the winner. Automatic: Centurion counts and decides.',
                     required: true,
                     type: 'String',
                     choices: [
