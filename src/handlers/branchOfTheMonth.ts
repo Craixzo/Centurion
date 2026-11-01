@@ -59,8 +59,8 @@ const WINNER_ROLE_ID = '';
 /** First month that is scored. Earlier months are never decided automatically. */
 const FIRST_MONTH = '2026-10';
 
-/** DM the winning branch's officers (config.recruitment.branches officerRoleIds) when a winner is set. */
-const CONGRATULATE_OFFICERS = true;
+/** Whether officer DMs start on, until an admin changes it with /botm-dms (saved across restarts). */
+const DEFAULT_DMS_ON = true;
 
 /** How often Centurion checks whether a month has ended. */
 const CHECK_EVERY_MS = 10 * 60 * 1000;
@@ -179,6 +179,22 @@ export const setMode = async (mode: BotmMode) => {
     await provider.setMeta(MODE_KEY, mode);
     modeCache = mode;
     cached = null;
+};
+
+const DMS_KEY = 'branchOfTheMonthDms';
+let dmsCache: boolean | null = null;
+
+/** Are congratulation DMs to the winning branch's officers turned on? */
+export const getDmsOn = async (): Promise<boolean> => {
+    if(dmsCache !== null) return dmsCache;
+    const stored = await provider.getMeta(DMS_KEY).catch((): null => null);
+    dmsCache = stored === 'on' ? true : stored === 'off' ? false : DEFAULT_DMS_ON;
+    return dmsCache;
+};
+
+export const setDmsOn = async (on: boolean) => {
+    await provider.setMeta(DMS_KEY, on ? 'on' : 'off');
+    dmsCache = on;
 };
 
 /** month -> branch key -> events logged by hand. */
@@ -375,7 +391,7 @@ const announce = async (result: MonthResult) => {
 
 /** DMs every officer of the winning branches, once each. Officer roles are looked up in the officer server and the main server. */
 const congratulateOfficers = async (result: MonthResult) => {
-    if(!CONGRATULATE_OFFICERS || !botClient || !result.winners.length) return;
+    if(!botClient || !result.winners.length || !(await getDmsOn())) return;
     const recruitment = (config as any).recruitment || {};
     const guilds = [ recruitment.officerGuildId, recruitment.guildId ]
         .map((id: string) => id && botClient!.guilds.cache.get(id))
