@@ -14,6 +14,7 @@ import { handleEventType } from '../arguments/handleEventType';
 import { handleRecruitmentComponent } from './recruitment/interactions';
 import { handleNewsComponent, handleNewsModal } from './news/interactions';
 import { handleModmailComponent } from './site/modmail';
+import { handleForeignAffairsInteraction } from './foreignAffairs/tickets';
 
 const handleInteraction = async (payload: Interaction<CacheType>) => {
     if(payload instanceof CommandInteraction) {
@@ -52,6 +53,8 @@ const handleInteraction = async (payload: Interaction<CacheType>) => {
         await handleModmailComponent(payload);
     } else if(payload.isModalSubmit() && payload.customId.startsWith('news:')) {
         await handleNewsModal(payload);
+    } else if((payload.isMessageComponent() || payload.isModalSubmit()) && payload.customId.startsWith('fa:')) {
+        await handleForeignAffairsInteraction(payload);
     }
 }
 
