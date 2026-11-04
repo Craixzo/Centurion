@@ -21,6 +21,7 @@ import registerModmail from './events/modmail';
 import registerManualEvents from './events/manualEvents';
 import { registerDiscordPerks } from './handlers/discordPerks';
 import { registerBranchOfTheMonth } from './handlers/branchOfTheMonth';
+import { registerForeignAffairs } from './handlers/foreignAffairs/tickets';
 require('dotenv').config();
 
 // [Ensure Setup]
@@ -63,6 +64,7 @@ registerModmail(discordClient);
 registerManualEvents(discordClient);
 registerDiscordPerks(discordClient);
 registerBranchOfTheMonth(discordClient);
+registerForeignAffairs(discordClient);
 
 discordClient.on('interactionCreate', handleInteraction as any);
 discordClient.on('messageCreate', handleLegacyCommand);
