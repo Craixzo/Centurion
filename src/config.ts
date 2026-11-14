@@ -353,14 +353,6 @@ export const config: BotConfig = {
                 divisions: [],
             },
             {
-                key: 'specwar',
-                name: 'Special Warfare',
-                officerRoleIds: ['1542605275843006554'],
-                notifyChannelId: '1445193629227417732',
-                roleId: '',
-                divisions: [],
-            },
-            {
                 key: 'general',
                 name: "I'm Not Sure",
                 general: true,
