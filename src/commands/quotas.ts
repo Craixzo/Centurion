@@ -1,0 +1,72 @@
+import { GuildMember } from 'discord.js';
+import { CommandContext } from '../../structures/addons/CommandAddons';
+import { Command } from '../../structures/Command';
+import { config } from '../../config';
+import { provider } from '../../database';
+import { getWeekStart, getWeekEnd, isQuotaEnabled } from '../../handlers/quota';
+import { getQuotaOverviewEmbed, getQuotaDisabledEmbed, getUnexpectedErrorEmbed } from '../../handlers/locale';
+
+class QuotasCommand extends Command {
+    constructor() {
+        super({
+            trigger: 'quotas',
+            description: 'Shows every officer against their weekly event quota.',
+            type: 'ChatInput',
+            module: 'events',
+            aliases: [ 'quotacheck' ],
+            permissions: [
+                {
+                    type: 'role',
+                    ids: config.permissions.admin,
+                    value: true,
+                },
+            ],
+        });
+    }
+
+    async run(ctx: CommandContext) {
+        if(!isQuotaEnabled()) return ctx.reply({ embeds: [ getQuotaDisabledEmbed() ] });
+        if(!ctx.guild) return ctx.reply({ content: 'This command only works inside a server.' });
+
+        try {
+            const weekStart = getWeekStart();
+
+            // One query for the whole guild, then match against role holders.
+            // Global mode: events in every server count, same as the weekly check.
+            const isGlobal = Boolean(config.quota?.global);
+            const counts = isGlobal
+                ? await provider.countEventsByAllHostsGlobal(weekStart)
+                : await provider.countEventsByAllHosts(ctx.guild.id, weekStart);
+            const members = ctx.guild.members.cache;
+
+            // Anyone whose leave touched this week is listed separately rather
+            // than counted as short — visible, but not silently forgiven.
+            const loas = isGlobal
+                ? await provider.findLoasOverlappingGlobal(weekStart, getWeekEnd())
+                : await provider.findLoasOverlapping(ctx.guild.id, weekStart, getWeekEnd());
+            const onLeave = new Set(loas.map((loa: any) => loa.discordId));
+
+            const officers = [ ... members.values() ]
+                .filter((member: GuildMember) => !member.user.bot
+                    && member.roles.cache.some((role) => config.quota.roleIds.includes(role.id)))
+                .map((member: GuildMember) => ({
+                    userId: member.id,
+                    hosted: counts[member.id] || 0,
+                    onLeave: onLeave.has(member.id),
+                }))
+                .sort((a, b) => b.hosted - a.hosted);
+
+            return ctx.reply({ embeds: [ await getQuotaOverviewEmbed({
+                officers,
+                required: config.quota.perWeek,
+                weekStart,
+                weekEnd: getWeekEnd(),
+            }) ] });
+        } catch (err) {
+            console.error('[quotas]', err);
+            return ctx.reply({ embeds: [ getUnexpectedErrorEmbed() ] });
+        }
+    }
+}
+
+export default QuotasCommand;
