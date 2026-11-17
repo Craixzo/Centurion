@@ -180,8 +180,18 @@ export const config: BotConfig = {
         weekStartsOn: 1,
         strikeLimit: 3,
         requireConfirmation: false,
+        // Holders of these roles are fully excused from the quota: never
+        // counted, struck, sent to JAGC or fired.
+        exemptRoleIds: [ '738164005243322528', '1293591336892502181' ],
         notifyExemptRoleIds: [],
         sendDMs: true,
+        jagc: {
+            enabled: true,
+            channelId: '', // TODO: JAGC case channel ID
+            reviewerRoleIds: [], // TODO: JAGC role IDs (admins can always rule)
+            trialAtLimit: true,
+            appealDays: 7,
+        },
     },
 
     logChannels: {
