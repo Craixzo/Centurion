@@ -229,6 +229,11 @@ export interface BotConfig {
          */
         notifyExemptRoleIds?: string[];
         /**
+         * Role IDs fully excused from the quota: never counted, struck, sent to
+         * JAGC or fired, and shown as not held to the quota in /quota.
+         */
+        exemptRoleIds?: string[];
+        /**
          * Master switch for quota-failure DMs. Set false while debugging so
          * strikes still track and log but nobody gets messaged. Defaults to true.
          */
