@@ -136,7 +136,7 @@ export const config: BotConfig = {
     },
 
     quota: {
-        enabled: false,
+        enabled: true,
         global: true,
         roleIds: [
             '1056133660954337280', 
@@ -184,7 +184,7 @@ export const config: BotConfig = {
         // counted, struck, sent to JAGC or fired.
         exemptRoleIds: [ '738164005243322528', '1293591336892502181' ],
         notifyExemptRoleIds: [],
-        sendDMs: true,
+        sendDMs: false,
         jagc: {
             enabled: true,
             channelId: '', // TODO: JAGC case channel ID
