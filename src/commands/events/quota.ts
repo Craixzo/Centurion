@@ -24,7 +24,8 @@ class QuotaCommand extends Command {
             permissions: [
                 {
                     type: 'role',
-                    ids: config.permissions.users,
+                    // Officers under quota can log events in any server.
+                    ids: [ ... config.permissions.users, ... (config.quota?.roleIds || []) ],
                     value: true,
                 },
             ],
@@ -42,8 +43,15 @@ class QuotaCommand extends Command {
 
             const member = await ctx.guild.members.fetch(targetId) as GuildMember;
             const weekStart = getWeekStart();
-            const hosted = await provider.countEventsByHost(ctx.guild.id, targetId, weekStart);
-            const loa = await provider.findActiveLoa(ctx.guild.id, targetId);
+            // Global mode: events in every server count, same as the weekly check.
+            const isGlobal = Boolean(config.quota?.global);
+            const hosted = isGlobal
+                ? await provider.countEventsByHostGlobal(targetId, weekStart)
+                : await provider.countEventsByHost(ctx.guild.id, targetId, weekStart);
+            const now = new Date();
+            const loa = isGlobal
+                ? (await provider.findLoasOverlappingGlobal(now, new Date(now.getTime() + 1))).find((l: any) => l.discordId === targetId)
+                : await provider.findActiveLoa(ctx.guild.id, targetId);
 
             return ctx.reply({ embeds: [ await getQuotaEmbed({
                 userId: targetId,

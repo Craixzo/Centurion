@@ -87,7 +87,8 @@ class EventCommand extends Command {
             permissions: [
                 {
                     type: 'role',
-                    ids: config.permissions.users,
+                    // Officers under quota can log events in any server.
+                    ids: [ ... config.permissions.users, ... (config.quota?.roleIds || []) ],
                     value: true,
                 },
             ],
