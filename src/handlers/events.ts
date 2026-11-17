@@ -89,6 +89,15 @@ const refreshAnnouncement = async (message: Message, event: any) => {
     } catch (err) { /* deleted or not editable */ }
 }
 
+/** Re-renders an event's announcement from its stored channel/message (e.g. after the bot RSVPs someone). */
+export const refreshEventAnnouncement = async (client: Client, event: any) => {
+    try {
+        const channel: any = await client.channels.fetch(event.channelId);
+        const message = await channel?.messages?.fetch(event.messageId);
+        if(message) await refreshAnnouncement(message, event);
+    } catch { /* channel or message gone */ }
+}
+
 /**
  * Reaction RSVPs.
  */

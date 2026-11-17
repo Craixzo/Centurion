@@ -40,7 +40,7 @@ const handleLegacyCommand = async (message: Message) => {
         } else {
             await context.defer();
             try {
-                (new command()).run(context);
+                await (new command()).run(context);
             } catch (err) {
                 console.error(err);
             }

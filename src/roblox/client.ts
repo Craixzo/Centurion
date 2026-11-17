@@ -15,6 +15,27 @@ const GROUPS_BASE = 'https://groups.roblox.com';
 
 const ROLE_CACHE_TTL = 60 * 1000;
 
+/**
+ * Rank changes this bot made, keyed `${groupId}:${userId}:${roleId}`.
+ * The audit-log watcher uses this to recognize its own changes. Comparing the
+ * log actor to one acting user isn't enough: groups ranked with a different
+ * account's API key (config.groupApiKeys, e.g. the Military group) show that
+ * account as the actor.
+ */
+const BOT_CHANGE_TTL = 15 * 60 * 1000;
+const botRankChanges = new Map<string, number>();
+
+export const wasBotRankChange = (groupId: number, userId: number | string, roleId: number): boolean => {
+    const at = botRankChanges.get(`${groupId}:${userId}:${roleId}`);
+    return Boolean(at && Date.now() - at < BOT_CHANGE_TTL);
+}
+
+const rememberBotRankChange = (groupId: number, userId: number | string, roleId: number) => {
+    const now = Date.now();
+    for(const [ key, at ] of botRankChanges) if(now - at > BOT_CHANGE_TTL) botRankChanges.delete(key);
+    botRankChanges.set(`${groupId}:${userId}:${roleId}`, now);
+}
+
 export interface GroupRole {
     id: number;
     name: string;
@@ -214,14 +235,17 @@ export class Group {
         const previousRolePath = membership.role;
         const newRolePath = `groups/${this.id}/roles/${roleId}`;
 
+        rememberBotRankChange(this.id, userId, roleId);
         const updated = await openCloud(
             'POST',
             `/cloud/v2/groups/${this.id}/memberships/${membershipId}:assignRole`,
             { body: { role: newRolePath } },
         );
 
-        const stillHeld: string[] = updated?.roles || [];
-        if(previousRolePath && previousRolePath !== newRolePath && stillHeld.includes(previousRolePath)) {
+        // If the response doesn't list the roles still held, don't assume the
+        // old one is gone: try to remove it anyway (a no-op error if it was).
+        const stillHeld: string[] | null = Array.isArray(updated?.roles) ? updated.roles : null;
+        if(previousRolePath && previousRolePath !== newRolePath && (stillHeld === null || stillHeld.includes(previousRolePath))) {
             try {
                 await openCloud(
                     'POST',

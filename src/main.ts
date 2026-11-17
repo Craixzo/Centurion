@@ -22,7 +22,18 @@ import registerManualEvents from './events/manualEvents';
 import { registerDiscordPerks } from './handlers/discordPerks';
 import { registerBranchOfTheMonth } from './handlers/branchOfTheMonth';
 import { registerForeignAffairs } from './handlers/foreignAffairs/tickets';
+import { registerEventAdvisor } from './handlers/eventAdvisor';
 require('dotenv').config();
+
+// Node exits on an unhandled promise rejection by default. Many fire-and-forget
+// calls (log channel sends, DMs, reactions) can reject on a Discord hiccup or a
+// missing permission; one of those must never take the whole bot down.
+process.on('unhandledRejection', (reason) => {
+    console.error('[unhandledRejection]', reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('[uncaughtException]', err);
+});
 
 // [Ensure Setup]
 if(!process.env.ROBLOX_API_KEY) {
@@ -65,6 +76,7 @@ registerManualEvents(discordClient);
 registerDiscordPerks(discordClient);
 registerBranchOfTheMonth(discordClient);
 registerForeignAffairs(discordClient);
+registerEventAdvisor(discordClient);
 
 discordClient.on('interactionCreate', handleInteraction as any);
 discordClient.on('messageCreate', handleLegacyCommand);

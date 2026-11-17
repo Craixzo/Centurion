@@ -6,6 +6,7 @@ import {
     StringSelectMenuBuilder,
 } from 'discord.js';
 import { mainColor, greenColor, redColor } from '../locale';
+import { config } from '../../config';
 import {
     Status,
     STATUS_LABELS,
@@ -136,15 +137,18 @@ export const getTicketComponents = (request: any): ActionRowBuilder<ButtonBuilde
         case Status.Assigned:
         case Status.Contact:
             buttons.push(button(`recruit:training:${id}`, 'Start Training', ButtonStyle.Primary));
+            buttons.push(button(`recruit:linkevent:${id}`, request.linkedEventId ? 'Change Event' : 'Link to Event'));
             buttons.push(button(`recruit:changebranch:${id}`, 'Change Branch'));
             buttons.push(button(`recruit:release:${id}`, 'Release Recruit'));
             break;
         case Status.Training:
             buttons.push(button(`recruit:ready:${id}`, 'Training Complete', ButtonStyle.Primary));
+            buttons.push(button(`recruit:linkevent:${id}`, request.linkedEventId ? 'Change Event' : 'Link to Event'));
             buttons.push(button(`recruit:release:${id}`, 'Release Recruit'));
             break;
         case Status.Ready:
             buttons.push(button(`recruit:complete:${id}`, 'Complete Recruitment', ButtonStyle.Success));
+            buttons.push(button(`recruit:linkevent:${id}`, request.linkedEventId ? 'Change Event' : 'Link to Event'));
             buttons.push(button(`recruit:release:${id}`, 'Release Recruit'));
             break;
         default:
@@ -196,6 +200,20 @@ export const getDivisionSelectRow = (request: any) => {
             .addOptions([ ... divisions, OTHER_DIVISION ].slice(0, 25).map((name) => ({ label: name, value: name }))),
     );
 };
+
+/** The officer's own upcoming events, to link a recruit to. */
+export const getEventPickRow = (requestId: string, events: any[]) => new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+    new StringSelectMenuBuilder()
+        .setCustomId(`recruit:pickevent:${requestId}`)
+        .setPlaceholder('Choose the event')
+        .addOptions(events.slice(0, 25).map((event) => ({
+            label: `${event.type ? `[${event.type}] ` : ''}${event.title}`.slice(0, 100),
+            description: event.startsAt
+                ? new Date(event.startsAt).toLocaleString('en-US', { timeZone: config.timezone || 'UTC', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }).slice(0, 100)
+                : 'No set time',
+            value: event.id,
+        }))),
+);
 
 export const getCloseReasonRow = (requestId: string) =>
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(

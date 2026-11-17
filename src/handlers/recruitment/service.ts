@@ -1,5 +1,7 @@
 import { EmbedBuilder, Guild, GuildMember, Message, TextChannel } from 'discord.js';
 import { mainColor } from '../locale';
+import { discordTime } from '../eventTime';
+import { refreshEventAnnouncement } from '../events';
 import { discordClient } from '../../main';
 import { provider } from '../../database';
 import {
@@ -161,6 +163,7 @@ const releaseFields = (flag: string) => ({
     extendedAt: null as Date | null,
     recruitSpoke: false,
     officerSpoke: false,
+    linkedEventId: null as string | null,
     flag,
     lastActivityAt: new Date(),
 });
@@ -427,6 +430,60 @@ export const hasHostedTryout = async (request: any): Promise<boolean> => {
         OR: [ { startsAt: null }, { startsAt: { lte: now } } ],
     } });
     return count > 0;
+};
+
+/** The assigned officer's own events a recruit can be linked to: open, and not over (or no set time). */
+export const getLinkableEvents = async (officerId: string) => {
+    const startedWindow = new Date(Date.now() - 2 * 60 * 60 * 1000); // still linkable for 2h after start
+    return (provider as any).db.event.findMany({
+        where: {
+            hostId: officerId,
+            closed: false,
+            OR: [ { startsAt: null, createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } }, { startsAt: { gte: startedWindow } } ],
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 25,
+    });
+};
+
+/**
+ * Links a recruit to one of their officer's events: RSVPs them, DMs them the
+ * details, and Centurion reminds them before it starts (see eventReminders).
+ */
+export const linkEvent = async (requestId: string, member: GuildMember, eventId: string): Promise<Result> => {
+    const request = await provider.findRecruitment(requestId);
+    if(!request || !request.activeKey || !request.officerId) return fail('This recruit is not currently claimed.');
+
+    const event = await provider.findEventById(eventId);
+    if(!event || event.closed) return fail('That event is no longer open.');
+    if(event.hostId !== request.officerId) return fail('Recruits can only be linked to events hosted by their assigned officer.');
+
+    await provider.updateRecruitment(requestId, { linkedEventId: event.id, lastActivityAt: new Date() });
+    await provider.setRsvp(event.id, request.discordId, true);
+    await refreshEventAnnouncement(discordClient, event);
+    await log(requestId, member.id, 'EVENT_LINKED', `${event.title} (${event.id})`);
+
+    const when = event.startsAt ? `${discordTime(event.startsAt, 'F')} (${discordTime(event.startsAt, 'R')})` : 'Your officer will tell you the time.';
+    const lines = [
+        `Your officer <@${request.officerId}> has signed you up for **${event.type ? `[${event.type}] ` : ''}${event.title}**.`,
+        '',
+        `**When:** ${when}`,
+        event.gameLink ? `**Where:** ${event.gameLink}` : null,
+        `**Announcement:** https://discord.com/channels/${event.guildId}/${event.channelId}/${event.messageId}`,
+        '',
+        'Centurion will remind you 5 minutes before it starts. If you can\'t make it, reply here so your officer can reschedule.',
+    ].filter((line) => line !== null).join('\n');
+
+    const delivered = request.dmReachable !== false && !!(await dmUser(request.discordId, getRecruitNoticeDm(lines)));
+
+    const guild = await getRecruitmentGuild();
+    if(guild) {
+        await refreshViews(guild, requestId);
+        await postInTicket(guild, request, `Linked to **${event.title}**${event.startsAt ? ` (${discordTime(event.startsAt, 'R')})` : ''}. ${delivered
+            ? `${request.username} was RSVP'd and sent the details, and will be reminded before it starts.`
+            : `${request.username} was RSVP'd, but **can't receive DMs**: tell them in the main server.`}`);
+    }
+    return ok(delivered ? `Linked. ${request.username} has the details and will get a reminder.` : `Linked, but ${request.username} can't receive DMs: tell them directly.`);
 };
 
 export const TRYOUT_REQUIRED_MESSAGE = 'The assigned officer has not hosted an event since claiming this recruit. Host the tryout with **/event** (or the Host / Event / Time format) first; once it has started, recruitment can be completed. It also counts toward your quota.';

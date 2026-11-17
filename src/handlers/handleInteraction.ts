@@ -22,6 +22,8 @@ const handleInteraction = async (payload: Interaction<CacheType>) => {
         const interaction = payload as CommandInteraction;
         if(!interaction.channel || !interaction.guild) return interaction.reply({ embeds: [ getUnknownCommandMessage() ] });
         const command = discordClient.commands.find((cmd) => (new cmd()).trigger === interaction.commandName);
+        // Commands load on 'ready'; a stale or not-yet-loaded command must not crash the handler.
+        if(!command) return interaction.reply({ embeds: [ getUnknownCommandMessage() ] }).catch((): null => null);
         const context = new CommandContext(interaction, command);
         const permission = context.checkPermissions();
         if(!permission) {
@@ -29,9 +31,9 @@ const handleInteraction = async (payload: Interaction<CacheType>) => {
         } else {
             await context.defer();
             try {
-                (new command()).run(context);
+                await (new command()).run(context);
             } catch (err) {
-                console.log(err);
+                console.error(`[command] /${interaction.commandName}:`, err);
             }
         }
     } else if(payload instanceof AutocompleteInteraction) {

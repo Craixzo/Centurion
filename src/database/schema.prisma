@@ -146,6 +146,9 @@ model RecruitmentRequest {
   recruitSpoke     Boolean   @default(false)
   officerSpoke     Boolean   @default(false)
   division         String?
+  /// Event the recruit was linked to (usually their tryout). They are RSVP'd
+  /// to it, DMed the details, and reminded with the host.
+  linkedEventId    String?
   closeReason      String?
   claimedAt        DateTime?
   reminderSentAt   DateTime?

@@ -1,4 +1,5 @@
 import { robloxClient } from '../main';
+import { wasBotRankChange } from '../roblox/client';
 import { logAction } from '../handlers/handleLogging';
 import { getAllGroupIds, getGroupLabel } from '../handlers/groupResolver';
 import { checkRankSkip, isRankSkipGroup } from '../handlers/rankSkip';
@@ -32,7 +33,9 @@ const recordGroup = async (groupId: number) => {
         .reverse();
 
     for(const log of fresh) {
-        if(robloxClient.user.id === log.actor.user.userId) continue;
+        if(robloxClient.user?.id === log.actor?.user?.userId) continue;
+        // Changes the bot made with another account's key (e.g. Military) show that account as actor.
+        if(wasBotRankChange(groupId, log.description?.['TargetId'], log.description?.['NewRoleSetId'])) continue;
         try {
             const oldRole = groupRoles.find((role) => role.id === log.description['OldRoleSetId']);
             const newRole = groupRoles.find((role) => role.id === log.description['NewRoleSetId']);

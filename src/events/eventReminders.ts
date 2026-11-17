@@ -34,6 +34,29 @@ const buildReminder = (event: any, attending: number, starting: boolean): string
     return lines.join('\n');
 }
 
+/**
+ * Recruits linked to this event (Link to Event in their recruitment ticket)
+ * get the same reminders as the host. Best-effort; never blocks the host's.
+ */
+const remindLinkedRecruits = async (client: Client, event: any, starting: boolean) => {
+    if(!config.recruitment?.enabled) return;
+    const recruits = await (provider as any).db.recruitmentRequest.findMany({
+        where: { linkedEventId: event.id, activeKey: { not: null }, dmReachable: true },
+    });
+    for(const recruit of recruits) {
+        const body = [
+            `**${event.type ? `[${event.type}] ` : ''}${event.title}** ${starting ? 'is starting now' : `starts ${discordTime(event.startsAt, 'R')}`}.`,
+            '',
+            event.gameLink ? `Join here: ${event.gameLink}` : `Check the announcement for where to join: https://discord.com/channels/${event.guildId}/${event.channelId}/${event.messageId}`,
+            `Your officer, <@${event.hostId}>, is hosting.`,
+        ].join('\n');
+        try {
+            const user = await client.users.fetch(recruit.discordId);
+            await user.send({ embeds: [ getNotificationEmbed(body, starting ? 'Your event is starting' : 'Your event is coming up') ] });
+        } catch (err) { /* DMs closed; their ticket already says so */ }
+    }
+}
+
 const runCheck = async (client: Client) => {
     const settings = config.eventReminders;
     if(!settings?.enabled) return;
@@ -49,6 +72,8 @@ const runCheck = async (client: Client) => {
             const starting = new Date(event.startsAt).getTime() <= now.getTime();
             const field = starting ? 'remindStartSent' : 'remind5Sent';
             if(event[field]) continue;
+
+            await remindLinkedRecruits(client, event, starting).catch((err) => console.error(`[eventReminders] recruits ${event.id}:`, err));
 
             const rsvps = await provider.getRsvps(event.id, true);
             const host = await client.users.fetch(event.hostId);

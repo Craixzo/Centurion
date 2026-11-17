@@ -17,6 +17,7 @@ import {
     getBranchChosenEmbed,
     getBranchSelectRow,
     getDivisionSelectRow,
+    getEventPickRow,
     getCloseReasonRow,
     getListEmbed,
 } from './views';
@@ -126,6 +127,24 @@ export const handleRecruitmentComponent = async (interaction: MessageComponentIn
                 await interaction.deferUpdate();
                 const result = await service.changeBranch(id, member, (interaction as StringSelectMenuInteraction).values[0]);
                 return interaction.editReply({ content: result.message, components: [] });
+            }
+
+            case 'linkevent':
+            case 'pickevent': {
+                if(!manager) return ephemeral(interaction, 'Only the assigned officer or recruitment leadership can link this recruit to an event.');
+                if(!request.officerId) return ephemeral(interaction, 'Claim this recruit first.');
+                if(action === 'linkevent') {
+                    const events = await service.getLinkableEvents(request.officerId);
+                    if(!events.length) return ephemeral(interaction, `<@${request.officerId}> has no open events to link. Schedule the tryout with **/event** first (it counts toward quota), then press **Link to Event** again.`);
+                    return interaction.reply({
+                        content: `Which of <@${request.officerId}>'s events should ${request.username} attend? They'll be RSVP'd, DMed the details, and reminded before it starts.`,
+                        components: [ getEventPickRow(id, events) ],
+                        flags: MessageFlags.Ephemeral,
+                    });
+                }
+                await interaction.deferUpdate();
+                const result = await service.linkEvent(id, member, (interaction as StringSelectMenuInteraction).values[0]);
+                return interaction.editReply({ content: result.message, components: [] }).catch((): null => null);
             }
 
             case 'complete':

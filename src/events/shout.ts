@@ -6,6 +6,8 @@ let firstShout = true;
 let lastShout: string;
 
 const recordShout = async () => {
+    // Schedule first, so one failed poll (network blip) doesn't stop shout logging for good.
+    setTimeout(recordShout, 60 * 1000);
     try {
         const group = await robloxClient.getGroup(config.groupId);
         const logChannel = await discordClient.channels.fetch(config.logChannels.shout) as TextChannel;
@@ -13,10 +15,9 @@ const recordShout = async () => {
             firstShout = false;
         } else {
             if(group.shout !== null && lastShout !== group.shout.content) {
-                logChannel.send({ embeds: [ await getShoutLogEmbed(group.shout) ] });
+                await logChannel.send({ embeds: [ await getShoutLogEmbed(group.shout) ] });
             }
         }
-        setTimeout(recordShout, 60 * 1000);
         if(group.shout?.content) lastShout = group.shout?.content;
     } catch (err) {
         console.error(err);
