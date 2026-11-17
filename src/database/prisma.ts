@@ -178,6 +178,17 @@ class PrismaProvider extends DatabaseProvider {
         return counts;
     }
 
+    /** Global roster pass: every host's events across ALL guilds. */
+    async countEventsByAllHostsGlobal(since: Date): Promise<Record<string, number>> {
+        const events = await this.db.event.findMany({
+            where: { createdAt: { gte: since } },
+            select: { hostId: true },
+        });
+        const counts: Record<string, number> = {};
+        for(const event of events) counts[event.hostId] = (counts[event.hostId] || 0) + 1;
+        return counts;
+    }
+
     /** Upcoming or just-started events that still owe the host a reminder. */
     async findEventsNeedingReminders(before: Date) {
         return this.db.event.findMany({
@@ -245,11 +256,17 @@ class PrismaProvider extends DatabaseProvider {
         });
     }
 
-    async setQuotaStrikes(guildId: string, groupId: string, discordId: string, strikes: number, weekKey: string, fired = false) {
+    /**
+     * pendingTrial is cleared on every write unless passed, so any reset,
+     * pass or new strike also closes out an old trial flag.
+     */
+    async setQuotaStrikes(guildId: string, groupId: string, discordId: string, strikes: number, weekKey: string, fired = false, extra: { firstSeenWeek?: string; pendingTrial?: boolean } = {}) {
+        const data: any = { strikes, lastCheckedAt: weekKey, fired, pendingTrial: extra.pendingTrial ?? false };
+        if(extra.firstSeenWeek !== undefined) data.firstSeenWeek = extra.firstSeenWeek;
         await this.db.quotaStrike.upsert({
             where: { guildId_groupId_discordId: { guildId, groupId, discordId } },
-            update: { strikes, lastCheckedAt: weekKey, fired },
-            create: { guildId, groupId, discordId, strikes, lastCheckedAt: weekKey, fired },
+            update: data,
+            create: { guildId, groupId, discordId, ... data },
         });
     }
 
@@ -259,14 +276,14 @@ class PrismaProvider extends DatabaseProvider {
 
     /** Every strike row that has a strike or a fired flag, regardless of key. */
     async getAllStrikesEverywhere() {
-        return this.db.quotaStrike.findMany({ where: { OR: [ { strikes: { gt: 0 } }, { fired: true } ] } });
+        return this.db.quotaStrike.findMany({ where: { OR: [ { strikes: { gt: 0 } }, { fired: true }, { pendingTrial: true } ] } });
     }
 
     /** Zero out every strike row across all guilds/groups. Returns count. */
     async resetAllStrikesEverywhere(): Promise<number> {
         const res = await this.db.quotaStrike.updateMany({
-            where: { OR: [ { strikes: { gt: 0 } }, { fired: true } ] },
-            data: { strikes: 0, fired: false },
+            where: { OR: [ { strikes: { gt: 0 } }, { fired: true }, { pendingTrial: true } ] },
+            data: { strikes: 0, fired: false, pendingTrial: false },
         });
         return res.count;
     }

@@ -83,9 +83,45 @@ model QuotaStrike {
   strikes       Int      @default(0)
   lastCheckedAt String?
   fired         Boolean  @default(false)
+  /// Quota week (YYYY-MM-DD) the officer was first seen on the roster. Never
+  /// struck for this week or any before it.
+  firstSeenWeek String?
+  /// Reached the strike limit and is waiting on a JAGC trial. Skipped by the
+  /// weekly check until JAGC rules.
+  pendingTrial  Boolean  @default(false)
+  /// Roblox role ID held before a quota firing, so an overturn can restore it.
+  firedFromRoleId String?
 
   @@unique([guildId, groupId, discordId])
   @@index([guildId, groupId])
+}
+
+/// A quota strike sent to JAGC: an officer's APPEAL of a strike, or the TRIAL
+/// opened automatically when an officer reaches the strike limit.
+model QuotaCase {
+  id         String    @id @default(uuid())
+  number     String    @unique
+  kind       String
+  status     String    @default("OPEN")
+  discordId  String
+  /// QuotaStrike guildId/groupId this case acts on ('global' in global mode).
+  scopeKey   String
+  groupId    String
+  weekKey    String
+  strikes    Int
+  hosted     Int       @default(0)
+  wasFired   Boolean   @default(false)
+  prevRoleId String?
+  reason     String?
+  ruling     String?
+  reviewerId String?
+  channelId  String?
+  messageId  String?
+  createdAt  DateTime  @default(now())
+  closedAt   DateTime?
+
+  @@unique([discordId, weekKey, kind])
+  @@index([status])
 }
 /// One row per recruitment attempt. Kept forever as service history.
 /// activeKey holds the Discord ID while the request is active and is cleared
