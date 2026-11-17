@@ -15,32 +15,46 @@ import { logAction } from '../handlers/handleLogging';
  *   Time: 8pm
  *   React if you plan to attend
  *
- * Only in config.eventChannels, only from members allowed to use /event.
- * The bot adds the RSVP reactions as confirmation that it counted.
+ * Only in config.eventChannels, only from members allowed to use /event or
+ * held to the quota. Time is optional, and common variants of the keys
+ * ("Event Type", "When", "Date", "Hosted by") are accepted, so an event is
+ * never dropped over formatting. Attendance plays no part: an event counts the
+ * moment it is posted. The bot adds the RSVP reactions as confirmation that it
+ * counted.
  */
 
-type ParsedEvent = { host: string; coHost?: string; event: string; time: string };
+type ParsedEvent = { host: string; coHost?: string; event: string; time?: string };
 
 /** Reads "Key: value" lines. Tolerates **bold**, a "(optional)" note after the key, and extra spaces. */
 export const parseManualEvent = (content: string): ParsedEvent | null => {
     const fields: Record<string, string> = {};
     for(const rawLine of content.split('\n')) {
         const line = rawLine.replace(/[*_`~]/g, '').trim();
-        const match = line.match(/^(co[\s-]?host|host|event|time)\s*(?:\([^)]*\))?\s*:\s*(.*)$/i);
+        const match = line.match(/^(co[\s-]?host(?:ed by)?|host(?:ed by)?|event(?:\s+(?:type|name))?|type|time|when|date|starts?(?:\s+time)?)\s*(?:\([^)]*\))?\s*:\s*(.*)$/i);
         if(!match) continue;
-        const key = match[1].toLowerCase().replace(/[\s-]/g, '');
-        if(!(key in fields)) fields[key] = match[2].trim();
+        const raw = match[1].toLowerCase().replace(/[\s-]/g, '');
+        const key = raw.startsWith('co') ? 'cohost'
+            : raw.startsWith('host') ? 'host'
+            : raw.startsWith('event') || raw === 'type' ? 'event'
+            : raw === 'time' ? 'time'
+            : 'when';
+        if(!(key in fields) && match[2].trim()) fields[key] = match[2].trim();
     }
 
-    if(!fields.host || !fields.event || !fields.time) return null;
-    return { host: fields.host, coHost: fields.cohost || undefined, event: fields.event, time: fields.time };
+    if(!fields.host || !fields.event) return null;
+    return { host: fields.host, coHost: fields.cohost || undefined, event: fields.event, time: fields.time || fields.when };
 };
 
 const firstMention = (text?: string): string | null => text?.match(/<@!?(\d{17,20})>/)?.[1] || null;
 
 const canPost = (member: GuildMember | null): boolean => {
     if(!member) return false;
-    const allowed = [ ... (config.permissions.users || []), ... (config.permissions.all || []) ];
+    // Anyone held to the quota must be able to log events, in every server.
+    const allowed = [
+        ... (config.permissions.users || []),
+        ... (config.permissions.all || []),
+        ... (config.quota?.roleIds || []),
+    ].filter(Boolean);
     return member.roles.cache.some((role) => allowed.includes(role.id));
 };
 
@@ -64,7 +78,7 @@ const tryRegister = async (message: Message) => {
     const details = [
         'Posted manually.',
         parsed.coHost ? `Co-Host: ${coHostId ? `<@${coHostId}>` : parsed.coHost}` : null,
-        `Time as written: ${parsed.time}`,
+        parsed.time ? `Time as written: ${parsed.time}` : null,
     ].filter(Boolean).join('\n');
 
     try {
@@ -76,7 +90,7 @@ const tryRegister = async (message: Message) => {
             details,
             type: null,
             gameLink: null,
-            startsAt: parseEventTime(parsed.time),
+            startsAt: parsed.time ? parseEventTime(parsed.time) : null,
             hostId,
         });
 
