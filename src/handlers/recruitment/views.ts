@@ -50,7 +50,7 @@ const statusGuidance = (request: any): string => {
         case Status.Training:
             return `Training is underway.\n\n${relayHelp}`;
         case Status.Ready:
-            return 'Training complete. Use Complete Recruitment to place them in a division.';
+            return 'Training complete. Use Complete Recruitment to place them in a division. The assigned officer must have hosted an event (the tryout) since claiming this recruit.';
         case Status.Completed:
             return `Recruitment complete. Placed in ${request.division}.`;
         case Status.Closed:

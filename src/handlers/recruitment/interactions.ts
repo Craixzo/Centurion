@@ -133,6 +133,7 @@ export const handleRecruitmentComponent = async (interaction: MessageComponentIn
                 if(!manager) return ephemeral(interaction, 'Only the assigned officer or recruitment leadership can complete recruitment.');
                 if(action === 'complete') {
                     if(request.status !== Status.Ready) return ephemeral(interaction, 'This recruit is not ready for placement.');
+                    if(!(await service.hasHostedTryout(request))) return ephemeral(interaction, service.TRYOUT_REQUIRED_MESSAGE);
                     return interaction.reply({
                         content: 'Where is this recruit being placed?',
                         components: [ getDivisionSelectRow(request) ],

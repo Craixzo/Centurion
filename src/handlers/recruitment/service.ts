@@ -412,9 +412,29 @@ const applyPlacementRoles = async (guild: Guild, request: any, division: string)
 
 const summaryEmbed = (request: any): EmbedBuilder => getNoticeEmbed(request).setTitle(`RECRUITMENT ${request.status === Status.Completed ? 'COMPLETED' : 'CLOSED'}: ${request.username}`);
 
+/**
+ * Has the officer who claimed this recruit hosted an event since claiming it?
+ * Any server counts. The event must have started (or have no set time), so a
+ * tryout scheduled for later doesn't unlock completion early.
+ */
+export const hasHostedTryout = async (request: any): Promise<boolean> => {
+    if(!request?.officerId) return false;
+    const since = request.claimedAt ? new Date(request.claimedAt) : new Date(request.createdAt);
+    const now = new Date();
+    const count = await (provider as any).db.event.count({ where: {
+        hostId: request.officerId,
+        createdAt: { gte: since },
+        OR: [ { startsAt: null }, { startsAt: { lte: now } } ],
+    } });
+    return count > 0;
+};
+
+export const TRYOUT_REQUIRED_MESSAGE = 'The assigned officer has not hosted an event since claiming this recruit. Host the tryout with **/event** (or the Host / Event / Time format) first; once it has started, recruitment can be completed. It also counts toward your quota.';
+
 export const complete = async (requestId: string, member: GuildMember, division: string): Promise<Result> => {
     const request = await provider.findRecruitment(requestId);
     if(!request || !request.activeKey) return fail('This recruitment request is no longer active.');
+    if(!(await hasHostedTryout(request))) return fail(TRYOUT_REQUIRED_MESSAGE);
 
     const branch = getBranch(request.branch);
     if(!branch || branch.general) return fail('Set the recruit\'s branch with Change Branch before completing recruitment.');
@@ -547,10 +567,43 @@ export const relayFromRecruit = async (message: Message) => {
  * are delivered to the recruit; anything starting with the internal-note
  * prefix, and anything from anyone else, stays in the channel.
  */
+// discord.gg/x, discord.com/invite/x, discordapp.com/invite/x (with or without https://)
+const INVITE_PATTERN = /(?:discord(?:app)?\.com\/invite|discord\.gg)\/[\w-]+/i;
+
+/**
+ * Invites are not allowed in recruitment tickets. Recruits should be brought
+ * in through a tryout, which the officer hosts as an event so it counts
+ * toward their quota. The message is removed before it reaches the recruit
+ * and the officer is told privately.
+ */
+const blockInvite = async (message: Message): Promise<boolean> => {
+    if(!INVITE_PATTERN.test(message.content)) return false;
+
+    await message.delete().catch((): null => null);
+
+    const notice = [
+        'Invites can\'t be sent in recruitment tickets, so your message was removed and **not** delivered to the recruit.',
+        '',
+        'Host a tryout first: post it with **/event** (or the Host / Event / Time format) in an events channel. That counts toward your weekly quota. Then tell the recruit when and where the tryout is.',
+    ].join('\n');
+
+    const dmed = await message.author.send({ embeds: [ getNoteEmbed(notice) ] }).then(() => true).catch(() => false);
+    if(!dmed) {
+        // DMs closed: say it in the ticket (officers only) and clean it up after a minute.
+        const reply = await (message.channel as TextChannel).send({
+            content: `<@${message.author.id}>`,
+            embeds: [ getNoteEmbed(notice) ],
+        }).catch((): null => null);
+        if(reply) setTimeout(() => reply.delete().catch((): null => null), 60 * 1000);
+    }
+    return true;
+};
+
 export const relayFromTicket = async (message: Message) => {
     if(message.author.bot || !message.guild) return;
     const request = await provider.findRecruitmentByChannel(message.channel.id);
     if(!request) return;
+    if(await blockInvite(message)) return;
     if(message.author.id !== request.officerId) return;
     if(message.content.trim().startsWith(INTERNAL_NOTE_PREFIX)) return;
 
