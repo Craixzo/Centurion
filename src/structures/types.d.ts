@@ -245,6 +245,23 @@ export interface BotConfig {
          * removal" instead of firing automatically. Defaults to false.
          */
         requireConfirmation?: boolean;
+        /**
+         * JAGC review of quota strikes.
+         *   - Struck officers get an "Appeal to JAGC" button (and /quotaappeal).
+         *   - With trialAtLimit, reaching strikeLimit opens a JAGC trial instead
+         *     of firing; JAGC upholds (fire) or acquits (strike removed).
+         */
+        jagc?: {
+            enabled: boolean;
+            /** Channel JAGC cases are posted in. Required for JAGC to work. */
+            channelId: string;
+            /** Roles allowed to rule on cases. permissions.admin/all always can. */
+            reviewerRoleIds?: string[];
+            /** Open a trial at the strike limit instead of firing. Defaults to true. */
+            trialAtLimit?: boolean;
+            /** Days after a strike that an appeal can still be filed. Defaults to 7. */
+            appealDays?: number;
+        };
     };
     /**
      * Map of Discord guild ID to the booster role ID granted in that guild.

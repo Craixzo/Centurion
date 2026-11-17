@@ -21,6 +21,7 @@ abstract class DatabaseProvider {
     abstract countEventsByHost(guildId: string, hostId: string, since: Date, until?: Date): Promise<number>;
     abstract countEventsByHostGlobal(hostId: string, since: Date, until?: Date): Promise<number>;
     abstract countEventsByAllHosts(guildId: string, since: Date): Promise<Record<string, number>>;
+    abstract countEventsByAllHostsGlobal(since: Date): Promise<Record<string, number>>;
     abstract findEventsNeedingReminders(before: Date): Promise<any[]>;
     abstract markEventReminded(id: string, field: 'remind5Sent' | 'remindStartSent'): Promise<void>;
 
@@ -41,7 +42,7 @@ abstract class DatabaseProvider {
     abstract getMeta(key: string): Promise<string | null>;
     abstract setMeta(key: string, value: string): Promise<void>;
     abstract getQuotaStrike(guildId: string, groupId: string, discordId: string): Promise<any>;
-    abstract setQuotaStrikes(guildId: string, groupId: string, discordId: string, strikes: number, weekKey: string, fired?: boolean): Promise<void>;
+    abstract setQuotaStrikes(guildId: string, groupId: string, discordId: string, strikes: number, weekKey: string, fired?: boolean, extra?: { firstSeenWeek?: string; pendingTrial?: boolean }): Promise<void>;
     abstract getAllStrikes(guildId: string, groupId: string): Promise<any[]>;
     abstract getAllStrikesEverywhere(): Promise<any[]>;
     abstract resetAllStrikesEverywhere(): Promise<number>;
