@@ -30,6 +30,7 @@ export const isQuotaEnabled = (): boolean => {
 /** Does this member's roles put them under the quota? */
 export const isUnderQuota = (roleIds: string[]): boolean => {
     if(!isQuotaEnabled()) return false;
+    if(roleIds.some((id) => (config.quota.exemptRoleIds || []).includes(id))) return false;
     return roleIds.some((id) => config.quota.roleIds.includes(id));
 }
 
