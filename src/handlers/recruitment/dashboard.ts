@@ -1,5 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, TextChannel } from 'discord.js';
 import { provider } from '../../database';
+import { config } from '../../config';
 import { mainColor } from '../locale';
 import { Status, settings, isEnabled, getBranches } from './common';
 import { getRecruitmentGuild } from './tickets';
@@ -46,6 +47,52 @@ export const buildDashboardEmbed = (requests: any[]): EmbedBuilder => {
         .setTimestamp();
 };
 
+/** Midnight on the 1st of the current month in config.timezone, as a real instant. */
+const startOfMonth = (now = new Date()): Date => {
+    const tz = config.timezone || 'UTC';
+    const parts = (date: Date) => Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+        timeZone: tz, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric',
+    }).formatToParts(date).map((p) => [ p.type, Number(p.value) ]));
+    const { year, month } = parts(now);
+    const guess = Date.UTC(year, month - 1, 1);
+    // How far the timezone is from UTC at that moment (e.g. -5h in EST).
+    const local = parts(new Date(guess));
+    const offset = Date.UTC(local.year, local.month - 1, local.day, local.hour % 24, local.minute) - guess;
+    return new Date(guess - offset);
+};
+
+/** Completed recruitments per branch: this month and all-time. */
+export const buildPlacedEmbed = async (): Promise<EmbedBuilder> => {
+    const db = (provider as any).db;
+    const monthStart = startOfMonth();
+    const where = { status: Status.Completed };
+    const [ allTime, thisMonth ] = await Promise.all([
+        db.recruitmentRequest.groupBy({ by: [ 'branch' ], where, _count: { _all: true } }),
+        db.recruitmentRequest.groupBy({ by: [ 'branch' ], where: { ... where, completedAt: { gte: monthStart } }, _count: { _all: true } }),
+    ]);
+    const countOf = (rows: any[], key: string) => rows.find((row) => row.branch === key)?._count?._all || 0;
+
+    const monthName = monthStart.toLocaleString('en-US', { month: 'long', timeZone: config.timezone || 'UTC' });
+    const lines: string[] = [];
+    let monthTotal = 0;
+    let allTotal = 0;
+    for(const branch of getBranches()) {
+        if(branch.general) continue;
+        const month = countOf(thisMonth, branch.key);
+        const all = countOf(allTime, branch.key);
+        monthTotal += month;
+        allTotal += all;
+        lines.push(`**${branch.name}**`, `${month} this month · ${all} all-time`, '');
+    }
+    lines.push(`**Total:** ${monthTotal} in ${monthName} · ${allTotal} all-time`);
+
+    return new EmbedBuilder()
+        .setTitle('RECRUITS PLACED')
+        .setColor(mainColor)
+        .setDescription(lines.join('\n'))
+        .setFooter({ text: 'Completed recruitments, counted when placed in a division' });
+};
+
 const dashboardComponents = () => [
     new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder().setCustomId('recruit:dash:queue').setLabel('View Recruitment Queue').setStyle(ButtonStyle.Primary),
@@ -65,7 +112,7 @@ export const updateDashboard = async () => {
         }
 
         const payload = {
-            embeds: [ buildDashboardEmbed(await provider.findActiveRecruitments()) ],
+            embeds: [ buildDashboardEmbed(await provider.findActiveRecruitments()), await buildPlacedEmbed() ],
             components: dashboardComponents(),
         };
 
