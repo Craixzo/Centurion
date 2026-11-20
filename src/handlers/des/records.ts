@@ -31,13 +31,15 @@ const has = (m: any, ...roles: string[]) => parseRoles(m.roles).some((r) => role
 const canWarrant = (m: any) => has(m, 'supervisor', 'oia', 'local-admin', 'service-admin');
 const canRemove = (m: any) => has(m, 'local-admin', 'service-admin');
 
-const RECORD_KINDS: Record<string, string> = { ARREST: 'Arrest', CITATION: 'Citation', WARNING: 'Warning', NOTE: 'Note' };
+const RECORD_KINDS: Record<string, string> = { ARREST: 'Arrest', CITATION: 'Citation', WARNING: 'Warning', NOTE: 'Note', CONVICTION: 'Conviction', ACQUITTAL: 'Acquittal' };
+/** What officers can add by hand on the website. Convictions and acquittals only come from the court in-game. */
+const MANUAL_KINDS = [ 'ARREST', 'CITATION', 'WARNING', 'NOTE' ];
 const DANGER: Record<string, string> = { LOW: 'Low', MEDIUM: 'Medium', HIGH: 'High' };
 export const SUBJECT_FLAGS: Record<string, string> = { armed: 'Armed', 'flight-risk': 'Flight risk', violent: 'Violent', gang: 'Gang affiliation' };
 
 /** The public Most Wanted page keeps a 30-second copy; any warrant change clears it so the page updates at once. */
 const wantedCache = { at: 0, body: null as any };
-const refreshWanted = () => { wantedCache.at = 0; wantedCache.body = null; };
+export const refreshWanted = () => { wantedCache.at = 0; wantedCache.body = null; };
 
 const parseList = (raw: unknown): string[] => { try { const a = JSON.parse(String(raw || '[]')); return Array.isArray(a) ? a.filter((x) => typeof x === 'string') : []; } catch { return []; } };
 const chargesFrom = (input: unknown): string[] => {
@@ -111,7 +113,7 @@ export const getSubject = async (actor: any, input: any): Promise<Result> => {
         records: s.records.filter((r: any) => !r.removed).map(recordView),
         warrants: s.warrants.map(warrantView),
         allFlags: Object.entries(SUBJECT_FLAGS).map(([ key, name ]) => ({ key, name })),
-        recordKinds: Object.entries(RECORD_KINDS).map(([ key, name ]) => ({ key, name })),
+        recordKinds: MANUAL_KINDS.map((key) => ({ key, name: RECORD_KINDS[key] })),
         dangerLevels: Object.entries(DANGER).map(([ key, name ]) => ({ key, name })),
         can: { record: true, warrant: canWarrant(actor), edit: canWarrant(actor), remove: canRemove(actor) },
     } };
@@ -174,7 +176,7 @@ export const addRecord = async (actor: any, input: any): Promise<Result> => {
     const s = await db().desSubject.findUnique({ where: { id: clean(input.subjectId, 64) } });
     if(!s || s.removed) return fail('That record doesn\'t exist.');
     const kind = clean(input.kind, 20).toUpperCase();
-    if(!RECORD_KINDS[kind]) return fail('Pick a valid entry type.');
+    if(!MANUAL_KINDS.includes(kind)) return fail('Pick a valid entry type.');
     const summary = cleanLong(input.summary, 2000);
     if(summary.length < 3) return fail('Write a short summary of what happened.');
     const charges = JSON.stringify(chargesFrom(input.charges));
@@ -200,7 +202,7 @@ export const removeRecord = async (actor: any, input: any): Promise<Result> => {
 
 // ---------------------------------------------------------------- warrants
 
-const nextWarrantNumber = async (): Promise<string> => {
+export const nextWarrantNumber = async (): Promise<string> => {
     const year = new Date().getFullYear();
     const prefix = `W-${year}-`;
     const latest = await db().desWarrant.findMany({ where: { number: { startsWith: prefix } }, orderBy: { number: 'desc' }, take: 1 });
