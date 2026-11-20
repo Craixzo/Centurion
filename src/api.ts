@@ -11,6 +11,7 @@ import { getBotmResponse } from './handlers/branchOfTheMonth';
 import { getLegislationResponse } from './handlers/legislation';
 import { getWantedList } from './handlers/des/records';
 import { registerDesRoutes } from './handlers/des/routes';
+import { registerDesGameRoutes } from './handlers/des/game';
 import { checkRankSkip, describeBlocked } from './handlers/rankSkip';
 import { getDiscordPerks } from './handlers/discordPerks';
 import { registerNewsRoutes, registerNewsManageRoutes } from './handlers/news/routes';
@@ -173,6 +174,9 @@ if(config.api) {
 
     // DES logins, called by the website (see handlers/des/routes.ts).
     registerDesRoutes(app);
+
+    // The game's court system and in-game MDT: records, warrants and CAD (see handlers/des/game.ts).
+    registerDesGameRoutes(app);
 
     // Corporations and the stock market: the game servers and the website (see handlers/economy/routes.ts).
     registerEconomyRoutes(app);
